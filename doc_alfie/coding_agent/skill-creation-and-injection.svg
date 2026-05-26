@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="920" viewBox="0 0 1240 920" role="img" aria-labelledby="title desc">
+  <title id="title">Skill creation and injection process</title>
+  <desc id="desc">Flowchart showing how Pi discovers skills, injects skill metadata into the system prompt, and expands explicit skill commands into full skill content.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+    </marker>
+    <style>
+      text {
+        font-family: "JetBrains Mono", "SF Mono", "Cascadia Code", monospace;
+      }
+      .title { fill: #f8fafc; font-size: 18px; font-weight: 700; }
+      .subtitle { fill: #94a3b8; font-size: 10px; }
+      .lane-label { font-size: 11px; font-weight: 700; }
+      .box-title { fill: #f8fafc; font-size: 11px; font-weight: 700; text-anchor: middle; }
+      .box-sub { fill: #94a3b8; font-size: 8.5px; text-anchor: middle; }
+      .small { fill: #94a3b8; font-size: 8px; }
+      .label { fill: #cbd5e1; font-size: 8px; }
+      .mono { fill: #e2e8f0; font-size: 8.5px; }
+      .note-title { fill: #f8fafc; font-size: 10px; font-weight: 700; }
+      .note { fill: #cbd5e1; font-size: 8.5px; }
+      .flow { fill: none; stroke: #94a3b8; stroke-width: 1.4; marker-end: url(#arrow); }
+      .flow-cyan { fill: none; stroke: #22d3ee; stroke-width: 1.5; marker-end: url(#arrow-cyan); }
+      .flow-emerald { fill: none; stroke: #34d399; stroke-width: 1.5; marker-end: url(#arrow-emerald); }
+      .flow-amber { fill: none; stroke: #fbbf24; stroke-width: 1.5; marker-end: url(#arrow-amber); }
+      .flow-dash { fill: none; stroke: #fb7185; stroke-width: 1.3; stroke-dasharray: 6 5; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1240" height="920" fill="#0f172a"/>
+  <rect width="1240" height="920" fill="url(#grid)" opacity="0.85"/>
+
+  <text x="32" y="34" class="title">Skill Creation and Injection Process</text>
+  <text x="32" y="54" class="subtitle">Skills are prompt resources: metadata is listed in the system prompt, full markdown is loaded only on demand.</text>
+
+  <rect x="28" y="80" width="570" height="650" rx="12" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8 5"/>
+  <text x="44" y="103" fill="#22d3ee" class="lane-label">A. Creation and Discovery</text>
+
+  <rect x="642" y="80" width="570" height="650" rx="12" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="8 5"/>
+  <text x="658" y="103" fill="#34d399" class="lane-label">B. Prompt Injection and Invocation</text>
+
+  <!-- Left lane nodes -->
+  <g>
+    <rect x="62" y="130" width="210" height="76" rx="6" fill="#0f172a"/>
+    <rect x="62" y="130" width="210" height="76" rx="6" fill="rgba(8, 51, 68, 0.42)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="167" y="154" class="box-title">Skill Authoring</text>
+    <text x="167" y="171" class="box-sub">directory with SKILL.md</text>
+    <text x="167" y="187" class="box-sub">optional scripts, refs, assets</text>
+  </g>
+
+  <g>
+    <rect x="326" y="130" width="226" height="76" rx="6" fill="#0f172a"/>
+    <rect x="326" y="130" width="226" height="76" rx="6" fill="rgba(76, 29, 149, 0.38)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="439" y="154" class="box-title">Resource Sources</text>
+    <text x="439" y="171" class="box-sub">.pi/skills, ~/.pi/agent/skills</text>
+    <text x="439" y="187" class="box-sub">packages, settings, CLI, extensions</text>
+  </g>
+
+  <path class="flow-cyan" d="M 272 168 L 316 168"/>
+
+  <g>
+    <rect x="185" y="258" width="252" height="78" rx="6" fill="#0f172a"/>
+    <rect x="185" y="258" width="252" height="78" rx="6" fill="rgba(6, 78, 59, 0.40)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="311" y="282" class="box-title">DefaultResourceLoader.reload()</text>
+    <text x="311" y="299" class="box-sub">resolves enabled skill paths</text>
+    <text x="311" y="315" class="box-sub">normalizes package and CLI metadata</text>
+  </g>
+
+  <path class="flow" d="M 439 206 L 439 232 Q 439 247 424 247 L 326 247 Q 311 247 311 258"/>
+
+  <g>
+    <rect x="185" y="388" width="252" height="82" rx="6" fill="#0f172a"/>
+    <rect x="185" y="388" width="252" height="82" rx="6" fill="rgba(8, 51, 68, 0.42)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="311" y="412" class="box-title">loadSkills()</text>
+    <text x="311" y="429" class="box-sub">scan directories, read markdown</text>
+    <text x="311" y="445" class="box-sub">parse frontmatter, validate metadata</text>
+    <text x="311" y="461" class="box-sub">dedupe by path and skill name</text>
+  </g>
+
+  <path class="flow-emerald" d="M 311 336 L 311 378"/>
+
+  <g>
+    <rect x="185" y="520" width="252" height="78" rx="6" fill="#0f172a"/>
+    <rect x="185" y="520" width="252" height="78" rx="6" fill="rgba(76, 29, 149, 0.38)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="311" y="544" class="box-title">Skill[] Registry</text>
+    <text x="311" y="561" class="box-sub">name, description, filePath</text>
+    <text x="311" y="577" class="box-sub">baseDir, sourceInfo, disable flag</text>
+  </g>
+
+  <path class="flow-cyan" d="M 311 470 L 311 510"/>
+
+  <g transform="translate(311, 666)">
+    <polygon points="0,-45 82,0 0,45 -82,0" fill="#0f172a"/>
+    <polygon points="0,-45 82,0 0,45 -82,0" fill="rgba(120, 53, 15, 0.30)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text y="-4" class="box-title">Visible to</text>
+    <text y="12" class="box-title">model?</text>
+  </g>
+
+  <path class="flow-amber" d="M 311 598 L 311 611"/>
+  <path class="flow-dash" d="M 393 666 L 530 666"/>
+  <text x="424" y="656" fill="#fb7185" font-size="8">disable-model-invocation=true</text>
+  <text x="531" y="670" class="small">hidden from automatic list</text>
+
+  <!-- Right lane nodes -->
+  <g>
+    <rect x="700" y="130" width="236" height="78" rx="6" fill="#0f172a"/>
+    <rect x="700" y="130" width="236" height="78" rx="6" fill="rgba(8, 51, 68, 0.42)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="818" y="154" class="box-title">AgentSession._rebuildSystemPrompt()</text>
+    <text x="818" y="171" class="box-sub">pulls skills from ResourceLoader</text>
+    <text x="818" y="187" class="box-sub">passes Skill[] to buildSystemPrompt()</text>
+  </g>
+
+  <path class="flow-cyan" d="M 437 559 C 548 559 590 169 690 169"/>
+
+  <g transform="translate(1034, 169)">
+    <polygon points="0,-45 82,0 0,45 -82,0" fill="#0f172a"/>
+    <polygon points="0,-45 82,0 0,45 -82,0" fill="rgba(120, 53, 15, 0.30)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text y="-4" class="box-title">read tool</text>
+    <text y="12" class="box-title">active?</text>
+  </g>
+
+  <path class="flow-amber" d="M 936 169 L 952 169"/>
+  <text x="944" y="158" fill="#fbbf24" font-size="8">check</text>
+
+  <g>
+    <rect x="780" y="286" width="236" height="84" rx="6" fill="#0f172a"/>
+    <rect x="780" y="286" width="236" height="84" rx="6" fill="rgba(6, 78, 59, 0.40)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="898" y="310" class="box-title">formatSkillsForPrompt()</text>
+    <text x="898" y="327" class="box-sub">filters disabled skills</text>
+    <text x="898" y="343" class="box-sub">emits &lt;available_skills&gt;</text>
+    <text x="898" y="359" class="box-sub">name, description, location only</text>
+  </g>
+
+  <path class="flow-emerald" d="M 1034 214 L 1034 246 Q 1034 262 1018 262 L 914 262 Q 898 262 898 286"/>
+  <text x="1044" y="238" fill="#34d399" font-size="8">yes</text>
+  <path class="flow-dash" d="M 1116 169 L 1180 169 L 1180 254"/>
+  <text x="1134" y="158" fill="#fb7185" font-size="8">no</text>
+  <text x="1108" y="278" class="small">omit skill list</text>
+
+  <g>
+    <rect x="780" y="424" width="236" height="80" rx="6" fill="#0f172a"/>
+    <rect x="780" y="424" width="236" height="80" rx="6" fill="rgba(8, 51, 68, 0.42)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="898" y="448" class="box-title">LLM System Prompt</text>
+    <text x="898" y="465" class="box-sub">model sees available skills</text>
+    <text x="898" y="481" class="box-sub">then uses read to load SKILL.md</text>
+  </g>
+
+  <path class="flow-cyan" d="M 898 370 L 898 414"/>
+
+  <g>
+    <rect x="700" y="570" width="236" height="78" rx="6" fill="#0f172a"/>
+    <rect x="700" y="570" width="236" height="78" rx="6" fill="rgba(76, 29, 149, 0.38)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="818" y="594" class="box-title">/skill:name args</text>
+    <text x="818" y="611" class="box-sub">interactive and RPC command path</text>
+    <text x="818" y="627" class="box-sub">forces explicit invocation</text>
+  </g>
+
+  <g>
+    <rect x="980" y="570" width="190" height="78" rx="6" fill="#0f172a"/>
+    <rect x="980" y="570" width="190" height="78" rx="6" fill="rgba(6, 78, 59, 0.40)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="1075" y="594" class="box-title">_expandSkillCommand()</text>
+    <text x="1075" y="611" class="box-sub">reads SKILL.md</text>
+    <text x="1075" y="627" class="box-sub">strips frontmatter</text>
+  </g>
+
+  <path class="flow-emerald" d="M 936 609 L 970 609"/>
+
+  <g>
+    <rect x="840" y="700" width="236" height="78" rx="6" fill="#0f172a"/>
+    <rect x="840" y="700" width="236" height="78" rx="6" fill="rgba(120, 53, 15, 0.30)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="958" y="724" class="box-title">&lt;skill name location&gt;</text>
+    <text x="958" y="741" class="box-sub">full instructions plus user args</text>
+    <text x="958" y="757" class="box-sub">sent as user message to Agent</text>
+  </g>
+
+  <path class="flow-amber" d="M 1075 648 L 1075 674 Q 1075 690 1059 690 L 974 690 Q 958 690 958 700"/>
+  <path class="flow" d="M 898 504 L 898 536 Q 898 552 882 552 L 834 552 Q 818 552 818 570"/>
+
+  <!-- Bottom distinction panel -->
+  <rect x="44" y="766" width="1152" height="120" rx="10" fill="#0f172a"/>
+  <rect x="44" y="766" width="1152" height="120" rx="10" fill="rgba(30, 41, 59, 0.56)" stroke="#64748b" stroke-width="1"/>
+  <text x="64" y="792" class="note-title">Key distinction</text>
+  <text x="64" y="816" class="note">Automatic path: only skill metadata is injected into the system prompt, and only when read is active.</text>
+  <text x="64" y="838" class="note">Explicit path: /skill:name expands the full markdown body into a &lt;skill&gt; user message before the agent prompt runs.</text>
+  <text x="64" y="860" class="note">Skills never become AgentTool entries and are not passed through Context.tools. They are instructions and resources, not executable tool definitions.</text>
+
+  <rect x="858" y="792" width="142" height="24" rx="5" fill="#0f172a"/>
+  <rect x="858" y="792" width="142" height="24" rx="5" fill="rgba(8, 51, 68, 0.42)" stroke="#22d3ee" stroke-width="1"/>
+  <text x="929" y="808" class="mono" text-anchor="middle">metadata-only</text>
+  <rect x="1018" y="792" width="142" height="24" rx="5" fill="#0f172a"/>
+  <rect x="1018" y="792" width="142" height="24" rx="5" fill="rgba(6, 78, 59, 0.40)" stroke="#34d399" stroke-width="1"/>
+  <text x="1089" y="808" class="mono" text-anchor="middle">full-content</text>
+</svg>
