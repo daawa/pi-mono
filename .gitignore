@@ -9,6 +9,9 @@ packages/*/dist-chrome/
 packages/*/dist-firefox/
 *.cpuprofile
 
+# graphify
+graphify-out/
+
 # Environment
 .env
 
