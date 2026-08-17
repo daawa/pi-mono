@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pi-ai Architecture</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="deck" aria-label="pi-ai architecture presentation">
+    <section class="slide title-slide active" data-title="pi-ai">
+      <div class="eyebrow">@earendil-works/pi-ai · v0.84.1</div>
+      <h1>One agent contract.<br><span>Many model backends.</span></h1>
+      <p class="lede">Architecture, design principles, modules, request flow, authentication, model data, and dependencies.</p>
+      <div class="title-mark" aria-hidden="true">
+        <span>Context</span><b>→</b><span>Models</span><b>→</b><span>Provider</span><b>→</b><span>API</span>
+      </div>
+      <footer><span>packages/ai</span><span>Engineering overview</span></footer>
+    </section>
+
+    <section class="slide" data-title="Design principles">
+      <header><div class="section-no">01</div><h2>The package makes heterogeneity a boundary concern</h2></header>
+      <div class="principles">
+        <article><div class="principle-index">A</div><h3>Normalize the agent surface</h3><p>One serializable <code>Context</code>, one message model, one tool schema, one event protocol, and one usage shape across providers.</p></article>
+        <article><div class="principle-index">B</div><h3>Separate ownership from protocol</h3><p>A provider owns catalog and auth. Reusable API adapters own wire formats such as OpenAI Responses or Anthropic Messages.</p></article>
+        <article><div class="principle-index">C</div><h3>Pay only for what is used</h3><p>The root entry is side-effect free. Provider factories are independent; SDK-backed API modules load on the first request.</p></article>
+        <article><div class="principle-index">D</div><h3>Preserve provider truth</h3><p>Reasoning, cache usage, raw stop reasons, response IDs, compatibility flags, and errors survive normalization.</p></article>
+      </div>
+      <div class="takeaway">The abstraction removes integration repetition without pretending every provider behaves identically.</div>
+      <footer><span>Sources: README.md · src/index.ts · src/types.ts</span><span>2 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Architecture">
+      <header><div class="section-no">02</div><h2>Four layers turn application intent into provider traffic</h2></header>
+      <div class="architecture-flow">
+        <div class="arch-node accent"><small>APPLICATION</small><strong>Context + Model + Options</strong><span>messages · tools · reasoning · cancellation</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>COLLECTION</small><strong><code>Models</code></strong><span>registry · auth application · refresh · completion</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>PROVIDER</small><strong>Catalog + Auth + Dispatch</strong><span>OpenAI · Anthropic · Bedrock · custom</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>API ADAPTER</small><strong>Wire protocol</strong><span>payload transform · transport · event normalization</span></div>
+      </div>
+      <div class="underlay">
+        <div><b>State seams</b><span>CredentialStore</span><span>ModelsStore</span><span>session cleanup</span></div>
+        <div><b>Cross-cutting utilities</b><span>retry + abort</span><span>validation</span><span>telemetry</span><span>cost</span></div>
+      </div>
+      <div class="callout-line"><b>Key distinction:</b> “provider” is a runtime owner; “API” is a reusable protocol implementation.</div>
+      <footer><span>Sources: src/models.ts · src/types.ts · src/providers/* · src/api/*</span><span>3 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Domain model">
+      <header><div class="section-no">03</div><h2>A compact domain model stays portable between sessions and vendors</h2></header>
+      <div class="domain-layout">
+        <div class="domain-code">
+<pre><code>Context {
+  systemPrompt?
+  messages: Message[]
+  tools?: Tool[]
+}
+
+Message =
+  UserMessage
+  | AssistantMessage
+  | ToolResultMessage</code></pre>
+        </div>
+        <div class="domain-copy">
+          <div class="big-word">Portable</div>
+          <p>Conversation state is plain data. An assistant turn records the originating <code>api</code>, <code>provider</code>, <code>model</code>, content blocks, stop reason, diagnostics, and timestamp.</p>
+          <div class="inline-track"><span>text</span><span>thinking</span><span>toolCall</span><span>image input</span></div>
+          <p>Tools use TypeBox schemas. Tool results are messages, so the same context can continue on another provider.</p>
+        </div>
+      </div>
+      <div class="metric-strip"><div><strong>1</strong><span>context shape</span></div><div><strong>3</strong><span>message roles</span></div><div><strong>4</strong><span>core content forms</span></div><div><strong>7</strong><span>stop-reason values</span></div></div>
+      <footer><span>Sources: src/types.ts · README.md</span><span>4 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Providers and APIs">
+      <header><div class="section-no">04</div><h2>40 known providers reuse 10 chat protocol families</h2></header>
+      <div class="reuse-map">
+        <div class="providers-cloud">
+          <h3>Provider ownership</h3>
+          <p>OpenAI · Anthropic · Google · Vertex AI · Bedrock · OpenRouter · GitHub Copilot · xAI · Groq · Mistral · DeepSeek · Cloudflare · Vercel · NVIDIA · local/custom endpoints …</p>
+          <div class="stat"><b>40</b><span>typed provider IDs</span></div>
+        </div>
+        <div class="funnel" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="api-list">
+          <h3>Protocol implementation</h3>
+          <ol>
+            <li>OpenAI Completions</li><li>OpenAI Responses</li><li>OpenAI Codex Responses</li><li>Azure Responses</li><li>Anthropic Messages</li><li>Google Generative AI</li><li>Google Vertex</li><li>Bedrock Converse</li><li>Mistral Conversations</li><li>Pi Messages</li>
+          </ol>
+        </div>
+      </div>
+      <div class="takeaway">A mixed provider can dispatch by <code>model.api</code>; most OpenAI-compatible services share one adapter plus model-level compatibility flags.</div>
+      <footer><span>Sources: src/types.ts · src/models.ts · src/providers/all.ts</span><span>5 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Adapter example">
+      <header><div class="section-no">05</div><h2>An adapter translates both the request and the response</h2></header>
+      <div class="adapter-chain">
+        <code>openaiProvider()</code><b>selects</b><code>openAIResponsesApi()</code><b>lazy-loads</b><code>openai-responses.ts</code>
+      </div>
+      <div class="adapter-flow">
+        <div class="adapter-side outbound">
+          <h3>Outbound: pi-ai → OpenAI</h3>
+          <div class="mapping-row"><code>Context.systemPrompt</code><span>→</span><code>developer | system</code></div>
+          <div class="mapping-row"><code>text / image</code><span>→</span><code>input_text / input_image</code></div>
+          <div class="mapping-row"><code>Tool + TypeBox</code><span>→</span><code>function tool + JSON Schema</code></div>
+          <div class="mapping-row"><code>maxTokens</code><span>→</span><code>max_output_tokens</code></div>
+          <p><code>buildParams()</code> calls <code>convertResponsesMessages()</code> and <code>convertResponsesTools()</code>, then sends the result through <code>client.responses.create()</code>.</p>
+        </div>
+        <div class="adapter-core">
+          <div class="adapter-label">PROTOCOL BOUNDARY</div>
+<pre><code>const messages =
+  convertResponsesMessages(
+    model, context, ...
+  );
+
+const params = {
+  model: model.id,
+  input: messages,
+  stream: true,
+  store: false
+};</code></pre>
+        </div>
+        <div class="adapter-side inbound">
+          <h3>Inbound: OpenAI → pi-ai</h3>
+          <div class="mapping-row"><code>output_text.delta</code><span>→</span><code>text_delta</code></div>
+          <div class="mapping-row"><code>reasoning_*.delta</code><span>→</span><code>thinking_delta</code></div>
+          <div class="mapping-row"><code>function_call_*.delta</code><span>→</span><code>toolcall_delta</code></div>
+          <div class="mapping-row"><code>response.completed</code><span>→</span><code>usage + stopReason + done</code></div>
+          <p><code>processResponsesStream()</code> accumulates partial content, parses streamed tool JSON, calculates cost, and emits the normalized event protocol.</p>
+        </div>
+      </div>
+      <div class="takeaway">The provider chooses the adapter; the adapter converts pi-ai’s stable types to one provider protocol and converts that protocol back.</div>
+      <footer><span>Sources: providers/openai.ts · api/openai-responses.ts · api/openai-responses-shared.ts</span><span>6 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Request lifecycle">
+      <header><div class="section-no">06</div><h2>Every request follows one ordered pipeline</h2></header>
+      <ol class="request-steps">
+        <li><b>1</b><div><strong>Resolve owner</strong><span><code>model.provider</code> selects the registered provider.</span></div></li>
+        <li><b>2</b><div><strong>Resolve auth</strong><span>Explicit key, stored credential, or ambient source.</span></div></li>
+        <li><b>3</b><div><strong>Assemble request</strong><span>Auth base URL, API key, environment, and case-insensitive headers.</span></div></li>
+        <li><b>4</b><div><strong>Transform once</strong><span><code>transformHeaders</code> gets final control before dispatch.</span></div></li>
+        <li><b>5</b><div><strong>Dispatch by API</strong><span>The provider selects the adapter for <code>model.api</code>.</span></div></li>
+        <li><b>6</b><div><strong>Normalize the stream</strong><span>Provider chunks become typed text, thinking, tool, done, or error events.</span></div></li>
+      </ol>
+      <div class="ordering"><code>auth headers</code><i>→</i><code>model headers</code><i>→</i><code>request headers</code><i>→</i><code>transformHeaders()</code></div>
+      <footer><span>Sources: src/models.ts · src/api/lazy.ts · README.md</span><span>7 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Streaming">
+      <header><div class="section-no">07</div><h2>The stream is both incremental output and the final result</h2></header>
+      <div class="stream-line">
+        <div class="event start">start</div><div class="connector"></div>
+        <div class="event">text_*<small>start · delta · end</small></div><div class="connector"></div>
+        <div class="event">thinking_*<small>start · delta · end</small></div><div class="connector"></div>
+        <div class="event">toolcall_*<small>start · delta · end</small></div><div class="connector"></div>
+        <div class="event terminal">done | error</div>
+      </div>
+      <div class="stream-explain">
+        <div><h3>One object, two consumption modes</h3><p>Use <code>for await</code> for live UI updates, then call <code>result()</code> for the final <code>AssistantMessage</code>. <code>complete()</code> is exactly this final-result path.</p></div>
+        <div><h3>Failure stays in protocol</h3><p>Async setup, lazy-import, auth, transport, and abort failures terminate with an error event and a final message. Consumers do not lose partial output semantics.</p></div>
+      </div>
+      <div class="takeaway">The event grammar is the stable integration point for terminals, agents, telemetry, and tests.</div>
+      <footer><span>Sources: src/types.ts · src/utils/event-stream.ts · src/api/lazy.ts</span><span>8 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Authentication">
+      <header><div class="section-no">08</div><h2>Authentication is provider-owned and concurrency-safe</h2></header>
+      <div class="auth-layout">
+        <div class="auth-precedence">
+          <h3>Resolution precedence</h3>
+          <div class="priority p1"><b>1</b><span>Explicit per-request API key</span></div>
+          <div class="priority p2"><b>2</b><span>Stored provider credential</span></div>
+          <div class="priority p3"><b>3</b><span>Environment or ambient auth</span></div>
+          <p class="note">A stored credential owns the provider. Failed OAuth refresh never silently falls back to an environment key.</p>
+        </div>
+        <div class="auth-details">
+          <div><h3>CredentialStore</h3><p>Injectable persistence with <code>read</code>, metadata-only <code>list</code>, serialized <code>modify</code>, and <code>delete</code>. The default is in-memory.</p></div>
+          <div><h3>OAuth refresh</h3><p>Refresh uses double-checked locking inside <code>modify</code>, a five-minute validity window, and a 15-second refresh timeout.</p></div>
+          <div><h3>AuthContext</h3><p>Abstracts environment and file checks so Node, browser bundles, tests, and host applications can supply different ambient sources.</p></div>
+        </div>
+      </div>
+      <footer><span>Sources: src/auth/resolve.ts · credential-store.ts · context.ts</span><span>9 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Model catalog">
+      <header><div class="section-no">09</div><h2>Model metadata is generated, corrected, validated, then consumed synchronously</h2></header>
+      <div class="catalog-pipeline">
+        <div class="source-stack"><h3>Build-time sources</h3><span>models.dev<br><small>/api.json</small></span><span>OpenRouter<br><small>/api/v1/models</small></span><span>Vercel AI Gateway<br><small>/v1/models</small></span><span>NVIDIA NIM<br><small>/v1/models</small></span></div>
+        <div class="pipeline-arrow">→</div>
+        <div class="processor"><h3>Generator policy</h3><p>Keep tool-capable models</p><p>Normalize modalities, limits, pricing</p><p>Apply explicit compatibility overrides</p><p>Strict validation + hashes</p></div>
+        <div class="pipeline-arrow">→</div>
+        <div class="output-stack"><h3>Published catalog</h3><span><code>*.models.ts</code></span><span>provider JSON shards</span><span>generated aggregator</span><span>literal model typing</span></div>
+      </div>
+      <div class="catalog-runtime"><b>Runtime rule:</b> reads stay synchronous and use last-known data. Dynamic providers refresh explicitly, restore cached overlays first, and publish updates with generation checks so stale requests cannot win.</div>
+      <footer><span>Sources: scripts/generate-models.ts · scripts/model-data.ts · src/models-store.ts</span><span>10 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Modules">
+      <header><div class="section-no">10</div><h2>The module boundaries match the main reasons code changes</h2></header>
+      <div class="module-map">
+        <div class="module-row"><strong>Core contract</strong><span><code>types.ts</code></span><span><code>models.ts</code></span><p>Domain types, provider collection, routing, refresh, auth application, cost and thinking helpers.</p></div>
+        <div class="module-row"><strong>API adapters</strong><span><code>api/*</code></span><span><code>api/*.lazy.ts</code></span><p>Provider payload conversion, SDK/fetch transport, stream parsing, deferred response support.</p></div>
+        <div class="module-row"><strong>Provider layer</strong><span><code>providers/*</code></span><span><code>providers/all.ts</code></span><p>Provider identity, model catalog, auth method, base configuration, protocol selection.</p></div>
+        <div class="module-row"><strong>Authentication</strong><span><code>auth/*</code></span><span><code>oauth.ts</code></span><p>Credential contracts, resolution, OAuth flows, device/PKCE helpers, browser-safe context seams.</p></div>
+        <div class="module-row"><strong>Data + support</strong><span><code>scripts/*</code></span><span><code>utils/*</code></span><p>Catalog generation, validation, retry/abort, partial JSON, proxying, diagnostics, estimation.</p></div>
+        <div class="module-row"><strong>Image path</strong><span><code>images-models.ts</code></span><span><code>images.ts</code></span><p>A parallel provider collection and API registry for image generation, sharing auth semantics.</p></div>
+      </div>
+      <footer><span>Sources: src/index.ts · package.json · package directory structure</span><span>11 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Dependencies">
+      <header><div class="section-no">11</div><h2>Dependencies are concentrated at transport and schema boundaries</h2></header>
+      <div class="dependency-layout">
+        <div class="dependency-column sdk"><h3>Provider SDKs</h3><ul><li><b>openai</b><span>Responses and compatible APIs</span></li><li><b>@anthropic-ai/sdk</b><span>Anthropic Messages</span></li><li><b>@google/genai</b><span>Gemini and Vertex</span></li><li><b>@aws-sdk/client-bedrock-runtime</b><span>Bedrock ConverseStream</span></li><li><b>@smithy/node-http-handler</b><span>Bedrock HTTP plumbing</span></li></ul></div>
+        <div class="dependency-column core"><h3>Core support</h3><ul><li><b>typebox</b><span>Tool schemas, types, validation</span></li><li><b>partial-json</b><span>Streaming tool arguments</span></li><li><b>@opentelemetry/api</b><span>Trace context</span></li><li><b>@earendil-works/pi-telemetry</b><span>Package telemetry integration</span></li><li><b>http(s)-proxy-agent</b><span>Node proxy routing</span></li></ul></div>
+        <div class="dependency-column rest"><h3>Catalog REST inputs</h3><ul><li><b>models.dev</b><span>Primary normalized metadata</span></li><li><b>OpenRouter</b><span>Tool-capable routed models</span></li><li><b>Vercel AI Gateway</b><span>Gateway catalog</span></li><li><b>NVIDIA NIM</b><span>Canonical live IDs</span></li><li><b>Provider endpoints</b><span>Runtime inference + OAuth</span></li></ul></div>
+      </div>
+      <div class="takeaway">The core surface can be imported without eagerly loading catalogs, OAuth implementations, or heavyweight SDK adapters.</div>
+      <footer><span>Sources: package.json · scripts/generate-models.ts · src/index.ts</span><span>12 / 14</span></footer>
+    </section>
+
+    <section class="slide" data-title="Compatibility and reliability">
+      <header><div class="section-no">12</div><h2>Compatibility behavior is explicit data, not scattered caller logic</h2></header>
+      <div class="reliability-grid">
+        <div class="reliability-main">
+          <h3>Model-level compatibility flags</h3>
+          <p>Capture differences such as developer-role support, token field names, reasoning formats, strict tools, prompt cache conventions, session affinity, and tool-result requirements.</p>
+          <pre><code>model.compat = {
+  thinkingFormat,
+  supportsStrictMode,
+  cacheControlFormat,
+  sessionAffinityFormat,
+  ...
+}</code></pre>
+        </div>
+        <div class="reliability-side">
+          <div><b>Retries</b><p>Interruptible exponential backoff; honors provider retry headers and caps excessive server delays.</p></div>
+          <div><b>Cancellation</b><p>Abort signals flow through auth, catalog refresh, network requests, OAuth, deferred operations, and sleeps.</p></div>
+          <div><b>Validation</b><p>Tool arguments are normalized, coerced, compiled, and returned with precise validation paths.</p></div>
+          <div><b>Testing</b><p>The faux provider exercises streaming and error behavior without real credentials or paid calls.</p></div>
+        </div>
+      </div>
+      <footer><span>Sources: src/types.ts · utils/provider-retry.ts · utils/validation.ts · providers/faux.ts</span><span>13 / 14</span></footer>
+    </section>
+
+    <section class="slide closing-slide" data-title="Takeaways">
+      <div class="eyebrow">ARCHITECTURAL TAKEAWAY</div>
+      <h2>Stable above.<br><span>Adaptable below.</span></h2>
+      <div class="closing-points">
+        <p><b>Applications</b> program against context, tools, streams, usage, and stop reasons.</p>
+        <p><b>Providers</b> own identity, model availability, authentication, and API selection.</p>
+        <p><b>Adapters</b> absorb protocol and transport differences while preserving important provider details.</p>
+        <p><b>Generated metadata</b> keeps the fast synchronous runtime path current and strongly typed.</p>
+      </div>
+      <div class="final-line">This separation is what lets pi-ai grow provider coverage without multiplying agent-side complexity.</div>
+      <footer><span>Primary sources: packages/ai/README.md and packages/ai/src</span><span>14 / 14</span></footer>
+    </section>
+  </main>
+
+  <nav class="deck-controls" aria-label="Presentation controls">
+    <button id="prev" type="button" aria-label="Previous slide">←</button>
+    <span id="counter" aria-live="polite">1 / 14</span>
+    <button id="next" type="button" aria-label="Next slide">→</button>
+    <button id="overview" type="button" aria-label="Toggle overview">▦</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+  <script src="deck.js"></script>
+</body>
+</html>
