@@ -205,6 +205,7 @@ const TOGETHER_TOGGLE_REASONING_LEVEL_MAP = {
 
 const AI_GATEWAY_MODELS_URL = "https://ai-gateway.vercel.sh/v1";
 const AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh";
+const PUBLISHED_MODELS_URL = "https://pi.dev/api/models";
 const VERTEX_BASE_URL = "https://{location}-aiplatform.googleapis.com";
 const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 const NVIDIA_HEADERS = {
@@ -1132,6 +1133,46 @@ async function fetchAiGatewayModels(): Promise<Model<any>[]> {
 		return models;
 	} catch (error) {
 		console.error("Failed to fetch Vercel AI Gateway models:", error);
+		if (generatorOptions.strict) throw error;
+		return [];
+	}
+}
+
+async function fetchPublishedModels(): Promise<Model<Api>[]> {
+	try {
+		console.log("Fetching the published model catalog from pi.dev...");
+		const response = await fetch(PUBLISHED_MODELS_URL);
+		if (!response.ok) throw new Error(`pi.dev model catalog returned ${response.status}`);
+		const catalog: unknown = await response.json();
+		if (typeof catalog !== "object" || catalog === null || Array.isArray(catalog)) {
+			throw new Error("pi.dev model catalog must contain a provider object");
+		}
+
+		const models: Model<Api>[] = [];
+		for (const [providerId, providerModels] of Object.entries(catalog)) {
+			if (typeof providerModels !== "object" || providerModels === null || Array.isArray(providerModels)) {
+				throw new Error(`pi.dev provider catalog must contain an object: ${providerId}`);
+			}
+			for (const [modelId, value] of Object.entries(providerModels)) {
+				if (
+					typeof value !== "object" ||
+					value === null ||
+					Array.isArray(value) ||
+					!("id" in value) ||
+					value.id !== modelId ||
+					!("provider" in value) ||
+					value.provider !== providerId
+				) {
+					throw new Error(`Invalid published model entry: ${providerId}/${modelId}`);
+				}
+				models.push(value as unknown as Model<Api>);
+			}
+		}
+
+		console.log(`Fetched ${models.length} models from the published pi.dev catalog`);
+		return models;
+	} catch (error) {
+		console.error("Failed to fetch the published pi.dev model catalog:", error);
 		if (generatorOptions.strict) throw error;
 		return [];
 	}
@@ -2280,16 +2321,18 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 }
 
 async function generateModels() {
-	// Fetch models from both sources
-	// models.dev: Anthropic, Google, OpenAI, Groq, Cerebras
-	// OpenRouter: xAI and other providers (excluding Anthropic, Google, OpenAI)
-	// AI Gateway: OpenAI-compatible catalog with tool-capable models
-	const modelsDevModels = await loadModelsDevData();
+	// Use the last published catalog as the baseline because models.dev is not
+	// reachable from every build environment. Provider-owned sources override it.
+	const publishedModels = await fetchPublishedModels();
 	const openRouterModels = await fetchOpenRouterModels();
 	const aiGatewayModels = await fetchAiGatewayModels();
 
-	// Combine models (models.dev has priority)
-	const allModels = [...modelsDevModels, ...openRouterModels, ...aiGatewayModels].filter(
+	const directlyFetchedProviders = new Set(["openrouter", "vercel-ai-gateway"]);
+	const allModels = [
+		...openRouterModels,
+		...aiGatewayModels,
+		...publishedModels.filter((model) => !directlyFetchedProviders.has(model.provider)),
+	].filter(
 		(model) =>
 			!(model.provider === "xai" && XAI_BUILTIN_EXCLUDED_MODEL_IDS.has(model.id)) &&
 			!((model.provider === "opencode" || model.provider === "opencode-go") && model.id === "gpt-5.3-codex-spark"),
