@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("strict model generation", () => {
-	it("fails before mutating generated data when an Individual model loses tool support", () => {
+	it("fails before mutating generated data when the published catalog is invalid", () => {
 		const fixtureRoot = mkdtempSync(join(tmpdir(), "pi-generate-models-"));
 		temporaryRoots.push(fixtureRoot);
 		const isolatedPackageRoot = join(fixtureRoot, "package");
@@ -21,33 +21,13 @@ describe("strict model generation", () => {
 		for (const entry of ["package.json", "scripts", "src"]) {
 			cpSync(join(packageRoot, entry), join(isolatedPackageRoot, entry), { recursive: true });
 		}
-		const preloadPath = join(fixtureRoot, "mock-models-dev.mjs");
-		const modelIds = [
-			"deepseek-v4-flash-0731",
-			"deepseek-v4-pro",
-			"glm-5.2",
-			"qwen3.6-flash",
-			"qwen3.7-max",
-			"qwen3.7-plus",
-			"qwen3.8-max",
-			"qwen3.8-max-preview",
-		];
-		const sourceModels = Object.fromEntries(
-			modelIds.map((id) => [
-				id,
-				{
-					id,
-					name: id,
-					tool_call: id !== "deepseek-v4-flash-0731",
-				},
-			]),
-		);
-		const catalog = { "alibaba-token-plan": { models: sourceModels } };
+		const preloadPath = join(fixtureRoot, "mock-published-models.mjs");
+		const catalog = { anthropic: { broken: { id: "wrong", provider: "anthropic" } } };
 		writeFileSync(
 			preloadPath,
 			`const catalog = ${JSON.stringify(catalog)};\n` +
 				`globalThis.fetch = async (input) => {\n` +
-				`  if (String(input) === "https://models.dev/api.json") {\n` +
+				`  if (String(input) === "https://pi.dev/api/models") {\n` +
 				`    return new Response(JSON.stringify(catalog), { status: 200 });\n` +
 				`  }\n` +
 				`  throw new Error(\`Unexpected fetch: \${String(input)}\`);\n` +
@@ -74,9 +54,7 @@ describe("strict model generation", () => {
 		);
 
 		expect(result.status).toBe(1);
-		expect(`${result.stdout}\n${result.stderr}`).toContain(
-			"qwen-token-plan-individual model IDs do not match (missing: deepseek-v4-flash-0731)",
-		);
+		expect(`${result.stdout}\n${result.stderr}`).toContain("Invalid published model entry: anthropic/broken");
 		expect(generatedPaths.map((path) => readFileSync(join(isolatedPackageRoot, path), "utf8"))).toEqual(
 			isolatedBefore,
 		);
