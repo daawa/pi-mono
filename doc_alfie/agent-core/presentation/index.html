@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pi-agent-core Architecture</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="deck" aria-label="pi-agent-core architecture presentation">
+    <section class="slide title-slide active" data-title="pi-agent-core">
+      <div class="eyebrow">@earendil-works/pi-agent-core · v0.84.1</div>
+      <h1>Stateful control.<br><span>Provider-neutral execution.</span></h1>
+      <p class="lede">How the agent runtime owns conversation state, model turns, tools, queues, events, cancellation, and host integration.</p>
+      <div class="title-track" aria-hidden="true">
+        <span>Application</span><b>→</b><span>Agent</span><b>→</b><span>Loop</span><b>→</b><span>StreamFn</span>
+      </div>
+      <footer><span>packages/agent</span><span>Engineering overview</span></footer>
+    </section>
+
+    <section class="slide" data-title="Design principles">
+      <header><div class="section-no">01</div><h2>Control policy stays above the provider protocol</h2></header>
+      <div class="principles">
+        <article><div class="principle-index">A</div><h3>Invert model transport</h3><p>The runtime accepts a <code>StreamFn</code>. It does not own a provider catalog, credentials, or a specific model SDK.</p></article>
+        <article><div class="principle-index">B</div><h3>Keep transcript state explicit</h3><p>Messages, tools, model choice, reasoning level, partial output, pending tool calls, and errors are observable state.</p></article>
+        <article><div class="principle-index">C</div><h3>Make control flow inspectable</h3><p>Turns, messages, and tool phases emit ordered events. Steering, follow-up, stop, and next-turn decisions are named hooks.</p></article>
+        <article><div class="principle-index">D</div><h3>Separate internal and LLM views</h3><p>Applications may keep custom messages, then transform and filter them only at the provider-call boundary.</p></article>
+      </div>
+      <div class="takeaway">The package orchestrates an agent run without duplicating the provider adapters already owned by <code>pi-ai</code>.</div>
+      <footer><span>Sources: README.md · src/types.ts · src/stream-fn.ts</span><span>2 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Architecture">
+      <header><div class="section-no">02</div><h2>Five boundaries connect application intent to model traffic</h2></header>
+      <div class="architecture-flow">
+        <div class="arch-node accent"><small>HOST</small><strong>Application</strong><span>prompt · UI · persistence · policy</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>STATE</small><strong><code>Agent</code></strong><span>transcript · queues · listeners · abort</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>CONTROL</small><strong><code>runAgentLoop</code></strong><span>turns · tools · continuation</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><small>MODEL SEAM</small><strong><code>StreamFn</code></strong><span>model + context + options</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node yellow"><small>PROTOCOL</small><strong><code>pi-ai</code></strong><span>providers · auth · normalized stream</span></div>
+      </div>
+      <div class="architecture-underlay">
+        <div><b>Application-facing output</b><span><code>AgentEvent</code></span><span><code>AgentState</code></span><span><code>waitForIdle()</code></span></div>
+        <div><b>Extension seams</b><span>context conversion</span><span>tool hooks</span><span>queue drains</span><span>next-turn update</span></div>
+      </div>
+      <div class="callout-line"><b>Ownership rule:</b> agent-core decides when to call a model; pi-ai decides how that call reaches the model.</div>
+      <footer><span>Sources: src/agent.ts · src/agent-loop.ts · src/types.ts</span><span>3 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Public APIs">
+      <header><div class="section-no">03</div><h2>Two API levels trade convenience for scheduling control</h2></header>
+      <div class="api-levels">
+        <div class="api-level primary">
+          <div class="api-label">STATEFUL WRAPPER</div>
+          <h3><code>new Agent(options)</code></h3>
+          <ul><li>Owns transcript and runtime state</li><li>Queues steering and follow-up messages</li><li>Reduces events before notifying listeners</li><li>Awaits listeners as execution barriers</li><li>Normalizes thrown loop failures</li></ul>
+          <div class="best-for">Best for applications and interactive agents</div>
+        </div>
+        <div class="versus">OR</div>
+        <div class="api-level secondary">
+          <div class="api-label">LOW-LEVEL STREAM</div>
+          <h3><code>agentLoop()</code></h3>
+          <ul><li>Accepts caller-owned context and callbacks</li><li>Returns <code>EventStream&lt;AgentEvent&gt;</code></li><li>Preserves producer event order</li><li>Does not await consumer handling</li><li>Exposes the loop without stored state</li></ul>
+          <div class="best-for">Best for custom schedulers and adapters</div>
+        </div>
+      </div>
+      <div class="takeaway">Use <code>Agent</code> when event handling must complete before the next producer phase; use the loop when observation is enough.</div>
+      <footer><span>Sources: README.md · src/agent.ts · src/agent-loop.ts</span><span>4 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Domain model">
+      <header><div class="section-no">04</div><h2>Three contracts carry almost all runtime state</h2></header>
+      <div class="contract-layout">
+        <div class="contract-code">
+<pre><code>AgentState {
+  systemPrompt
+  model
+  thinkingLevel
+  tools[]
+  messages[]
+  isStreaming
+  streamingMessage?
+  pendingToolCalls
+  errorMessage?
+}</code></pre>
+        </div>
+        <div class="contract-list">
+          <div><span>01</span><h3><code>AgentMessage</code></h3><p>Standard LLM messages plus declaration-merged application messages. The stored transcript can be richer than the model context.</p></div>
+          <div><span>02</span><h3><code>AgentTool</code></h3><p>A TypeBox schema, UI label, optional argument adapter, execution mode, async executor, progress callback, and structured result.</p></div>
+          <div><span>03</span><h3><code>AgentEvent</code></h3><p>A discriminated union covering agent, turn, message, and tool-execution lifecycles.</p></div>
+        </div>
+      </div>
+      <div class="takeaway">Assigned tool and message arrays are copied at the top level; runtime-owned fields are read-only to callers.</div>
+      <footer><span>Sources: src/types.ts · src/agent.ts</span><span>5 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Model boundary">
+      <header><div class="section-no">05</div><h2>The model boundary adapts the transcript, then delegates transport</h2></header>
+      <div class="boundary-grid">
+        <div class="boundary-code">
+          <div class="code-label">ACTUAL FLOW IN <code>streamAssistantResponse()</code></div>
+<pre><code>let messages = context.messages;
+if (config.transformContext) {
+  messages = await config.transformContext(messages, signal);
+}
+
+const llmMessages = await config.convertToLlm(messages);
+const llmContext = {
+  systemPrompt: context.systemPrompt,
+  messages: llmMessages,
+  tools: context.tools,
+};
+
+const response = await streamFunction(
+  config.model, llmContext, { ...config, apiKey, signal }
+);</code></pre>
+        </div>
+        <div class="boundary-copy">
+          <div><b>1</b><h3>Transform internal context</h3><p>Prune, compact, or inject data while custom <code>AgentMessage</code> types are still available.</p></div>
+          <div><b>2</b><h3>Convert for the LLM</h3><p>Filter UI-only records or translate custom messages into <code>user</code>, <code>assistant</code>, and <code>toolResult</code>.</p></div>
+          <div><b>3</b><h3>Resolve request state</h3><p>Fetch a fresh provider key, pass reasoning and session options, and propagate cancellation.</p></div>
+        </div>
+      </div>
+      <footer><span>Source: src/agent-loop.ts — streamAssistantResponse()</span><span>6 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Loop control">
+      <header><div class="section-no">06</div><h2>Two nested loops give tools and queued messages different timing</h2></header>
+      <div class="loop-visual">
+        <div class="loop-column outer">
+          <div class="loop-tag">OUTER LOOP</div>
+          <h3>Follow-up continuation</h3>
+          <p>Runs only after the agent would otherwise stop. A follow-up re-enters the inner loop as the next user turn.</p>
+          <div class="loop-rule"><code>followUpMessages.length &gt; 0</code><span>→ continue outer loop</span></div>
+        </div>
+        <div class="loop-arrow">contains</div>
+        <div class="loop-column inner">
+          <div class="loop-tag">INNER LOOP</div>
+          <h3>Tool and steering continuation</h3>
+          <ol><li>Inject pending messages</li><li>Stream one assistant response</li><li>Execute its tool batch</li><li>Emit <code>turn_end</code></li><li>Prepare/stop/poll steering</li></ol>
+          <div class="loop-rule"><code>hasMoreToolCalls || pendingMessages.length</code></div>
+        </div>
+      </div>
+      <div class="takeaway">A normal text response ends the run only when there are no tool calls, no steering messages, and no follow-ups.</div>
+      <footer><span>Sources: src/agent-loop.ts · doc_alfie/agent-core/agent-loop-hooks.md</span><span>7 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Tool execution">
+      <header><div class="section-no">07</div><h2>Tool calls pass through validation, policy, execution, and normalization</h2></header>
+      <ol class="tool-pipeline">
+        <li><b>1</b><div><strong>Resolve</strong><span>Find the named tool. Missing tools become error results.</span></div></li>
+        <li><b>2</b><div><strong>Prepare + validate</strong><span>Adapt raw arguments, then validate against the TypeBox schema.</span></div></li>
+        <li><b>3</b><div><strong>Preflight</strong><span><code>beforeToolCall</code> may block with a reason and termination hint.</span></div></li>
+        <li><b>4</b><div><strong>Execute</strong><span>Run sequentially or concurrently; stream progress through <code>onUpdate</code>.</span></div></li>
+        <li><b>5</b><div><strong>Finalize</strong><span><code>afterToolCall</code> may replace content, details, usage, error, or termination.</span></div></li>
+      </ol>
+      <div class="parallel-trace">
+        <div><span class="trace-label">PARALLEL COMPLETION EVENTS</span><code>B end → C end → A end</code></div>
+        <div class="trace-arrow">but</div>
+        <div><span class="trace-label">TRANSCRIPT ORDER</span><code>A result → B result → C result</code></div>
+      </div>
+      <div class="takeaway">Parallelism improves latency without changing the assistant’s source order in persisted tool-result messages.</div>
+      <footer><span>Sources: src/agent-loop.ts · src/types.ts</span><span>8 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Event protocol">
+      <header><div class="section-no">08</div><h2>One turn has a stable event grammar for UI and persistence</h2></header>
+      <div class="event-sequence">
+        <div class="event-node lifecycle">agent_start</div><i>→</i>
+        <div class="event-node">turn_start</div><i>→</i>
+        <div class="event-node wide">assistant message<small>start · update* · end</small></div><i>→</i>
+        <div class="event-node wide yellow">tool execution*<small>start · update* · end</small></div><i>→</i>
+        <div class="event-node wide">toolResult messages*<small>start · end</small></div><i>→</i>
+        <div class="event-node">turn_end</div>
+      </div>
+      <div class="event-notes">
+        <div><h3>Streaming remains incremental</h3><p>Text, reasoning, and tool-call deltas arrive inside <code>message_update.assistantMessageEvent</code>.</p></div>
+        <div><h3>Terminal failures stay representable</h3><p>Provider error and abort messages still produce <code>message_end</code>, <code>turn_end</code>, then <code>agent_end</code>.</p></div>
+        <div><h3>Turns are the accounting unit</h3><p>Each <code>turn_end</code> carries the assistant message and the ordered tool-result messages for that response.</p></div>
+      </div>
+      <footer><span>Sources: README.md · src/types.ts · src/agent-loop.ts</span><span>9 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="State and settlement">
+      <header><div class="section-no">09</div><h2><code>agent_end</code> is an event boundary; idle is a settlement boundary</h2></header>
+      <div class="settlement-flow">
+        <div><small>1</small><strong>Loop emits <code>agent_end</code></strong><span>No more loop events will be produced.</span></div>
+        <b>→</b>
+        <div><small>2</small><strong><code>processEvents()</code> reduces state</strong><span>Message, partial output, and pending-tool fields are updated first.</span></div>
+        <b>→</b>
+        <div><small>3</small><strong>Listeners run in registration order</strong><span>Every returned promise is awaited, including final persistence work.</span></div>
+        <b>→</b>
+        <div><small>4</small><strong><code>finishRun()</code> marks idle</strong><span>Streaming state clears and <code>waitForIdle()</code> resolves.</span></div>
+      </div>
+      <div class="settlement-code">
+<pre><code>for (const listener of this.listeners) {
+  await listener(event, signal);
+}
+
+// later, in finally
+this._state.isStreaming = false;
+this.activeRun?.resolve();
+this.activeRun = undefined;</code></pre>
+        <p><b>Why it matters:</b> a UI or session store can treat awaited listeners as a consistency barrier before another prompt begins.</p>
+      </div>
+      <footer><span>Source: src/agent.ts — processEvents(), runWithLifecycle(), finishRun()</span><span>10 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Message queues">
+      <header><div class="section-no">10</div><h2>Steering and follow-up differ by drain point, not message shape</h2></header>
+      <div class="queue-layout">
+        <div class="queue-track steer">
+          <div class="queue-name">STEERING</div>
+          <h3>Change direction inside the current run</h3>
+          <div class="queue-timeline"><span>assistant</span><i>→</i><span>tools finish</span><i>→</i><b>drain</b><i>→</i><span>next model turn</span></div>
+          <p>Polled after a completed turn and once at startup. Existing tool calls are not cancelled or skipped.</p>
+        </div>
+        <div class="queue-track follow">
+          <div class="queue-name">FOLLOW-UP</div>
+          <h3>Add work after the current task would stop</h3>
+          <div class="queue-timeline"><span>no tools</span><i>→</i><span>no steering</span><i>→</i><b>drain</b><i>→</i><span>new turn</span></div>
+          <p>Polled only after the inner loop exits. It re-enters the run through the outer loop.</p>
+        </div>
+      </div>
+      <div class="mode-strip"><b>Queue mode</b><span><code>one-at-a-time</code> drains the oldest message</span><span><code>all</code> injects the entire FIFO batch before one model call</span></div>
+      <footer><span>Sources: src/agent.ts · src/agent-loop.ts · README.md</span><span>11 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Proxy transport">
+      <header><div class="section-no">11</div><h2>Proxy mode changes the network path, not the agent contract</h2></header>
+      <div class="proxy-layout">
+        <div class="proxy-path">
+          <div><small>BROWSER APP</small><strong><code>Agent</code></strong></div><b>→</b>
+          <div class="accent"><small>STREAM FUNCTION</small><strong><code>streamProxy()</code></strong></div><b>→</b>
+          <div><small>BACKEND</small><strong><code>POST /api/stream</code></strong></div><b>→</b>
+          <div class="yellow"><small>PROVIDERS</small><strong>pi-ai runtime</strong></div>
+        </div>
+        <div class="proxy-details">
+          <div><h3>Outbound</h3><p>Serializes model, context, and safe stream options. Authentication is a proxy bearer token, not a provider key in the browser.</p></div>
+          <div><h3>Inbound</h3><p>Consumes SSE lines. Compact events omit repeated partial messages, so the client reconstructs text, thinking, and tool-call state.</p></div>
+          <div><h3>Result</h3><p>The caller still receives the same <code>AssistantMessageEventStream</code> expected by the agent loop.</p></div>
+        </div>
+      </div>
+      <div class="takeaway"><code>streamProxy</code> is an adapter for deployment topology: server-managed auth with unchanged agent behavior.</div>
+      <footer><span>Source: src/proxy.ts</span><span>12 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Modules">
+      <header><div class="section-no">12</div><h2>The package combines a mature core with durable-session building blocks</h2></header>
+      <div class="module-map">
+        <div class="module-row"><strong>Stateful runtime</strong><span><code>agent.ts</code></span><span><code>types.ts</code></span><p>Public state, subscriptions, queues, lifecycle ownership, tool and hook contracts.</p></div>
+        <div class="module-row"><strong>Loop engine</strong><span><code>agent-loop.ts</code></span><span><code>stream-fn.ts</code></span><p>Turn scheduling, provider boundary, tool execution, continuation and stop decisions.</p></div>
+        <div class="module-row"><strong>Proxy adapter</strong><span><code>proxy.ts</code></span><span><code>node.ts</code></span><p>Browser-to-server streaming and the Node execution-environment entry point.</p></div>
+        <div class="module-row"><strong>Harness utilities</strong><span><code>harness/session/*</code></span><span><code>compaction/*</code></span><p>Memory/JSONL sessions, conversation trees, reducers, compaction, skills, prompts, and tools.</p></div>
+        <div class="module-row"><strong>Search + telemetry</strong><span><code>search/*</code></span><span><code>telemetry.ts</code></span><p>Async session search contracts, scanning implementation, and typed runtime spans.</p></div>
+      </div>
+      <div class="status-note"><b>Current implementation boundary:</b> <code>AgentHarness</code> exposes the intended durable lane API, but most operational methods still reject with <code>HarnessNotImplemented</code>; configuration accessors and lower-level session utilities are implemented.</div>
+      <footer><span>Sources: src/index.ts · src/harness/agent-harness.ts · docs/harness.md</span><span>13 / 15</span></footer>
+    </section>
+
+    <section class="slide" data-title="Dependencies">
+      <header><div class="section-no">13</div><h2>Dependencies match the boundaries the package actually owns</h2></header>
+      <div class="dependency-layout">
+        <div class="dependency-column core"><h3>Core runtime</h3><ul><li><b>@earendil-works/pi-ai</b><span>Models, messages, events, validation, streaming</span></li><li><b>@earendil-works/pi-telemetry</b><span>Typed spans and telemetry context</span></li><li><b>typebox</b><span>Tool schemas, static types, guards</span></li></ul></div>
+        <div class="dependency-column harness"><h3>Harness support</h3><ul><li><b>diff</b><span>Edit-diff calculation and application</span></li><li><b>ignore</b><span>Skill discovery with ignore rules</span></li><li><b>yaml</b><span>Prompt-template and skill metadata parsing</span></li></ul></div>
+        <div class="dependency-column footprint"><h3>Runtime footprint</h3><ul><li><b>Node ≥ 22.19</b><span>Published engine requirement</span></li><li><b>No provider SDKs</b><span>Inference dependencies stay in pi-ai</span></li><li><b>No native SQLite</b><span>SQLite backend ships as a separate package</span></li><li><b>One direct REST shape</b><span>Optional proxy endpoint: <code>/api/stream</code></span></li></ul></div>
+      </div>
+      <div class="takeaway">The core remains portable because provider protocols and durable database adapters are injected or packaged elsewhere.</div>
+      <footer><span>Sources: package.json · README.md · src imports</span><span>14 / 15</span></footer>
+    </section>
+
+    <section class="slide closing-slide" data-title="Takeaways">
+      <div class="eyebrow">ARCHITECTURAL TAKEAWAY</div>
+      <h2>Explicit state.<br><span>Replaceable edges.</span></h2>
+      <div class="closing-points">
+        <p><b>The Agent</b> owns state, queues, cancellation, and awaited application events.</p>
+        <p><b>The loop</b> owns turn scheduling, tool batches, and continuation decisions.</p>
+        <p><b>StreamFn</b> keeps model transport replaceable without leaking provider logic upward.</p>
+        <p><b>AgentMessage</b> lets applications retain richer transcripts than providers understand.</p>
+      </div>
+      <div class="final-line">The design turns an LLM stream into a controllable application runtime while keeping every major boundary replaceable.</div>
+      <footer><span>Primary sources: packages/agent/README.md and packages/agent/src</span><span>15 / 15</span></footer>
+    </section>
+  </main>
+
+  <nav class="deck-controls" aria-label="Presentation controls">
+    <button id="prev" type="button" aria-label="Previous slide">←</button>
+    <span id="counter" aria-live="polite">1 / 15</span>
+    <button id="next" type="button" aria-label="Next slide">→</button>
+    <button id="overview" type="button" aria-label="Toggle overview">▦</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+  <script src="deck.js"></script>
+</body>
+</html>

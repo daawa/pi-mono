@@ -1,0 +1,153 @@
+<svg viewBox="0 0 1240 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Pi architecture overview</title>
+  <desc id="desc">The local CLI runtime and the separate experimental remote-session subsystem.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/>
+    </marker>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap');
+      text { font-family: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace; }
+      .name { fill: #f8fafc; font-size: 12px; font-weight: 600; text-anchor: middle; }
+      .sub { fill: #94a3b8; font-size: 9px; text-anchor: middle; }
+      .region { font-size: 10px; font-weight: 600; }
+      .label { fill: #94a3b8; font-size: 8px; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="1240" height="760" fill="#0f172a"/>
+  <rect width="1240" height="760" fill="url(#grid)"/>
+  <text x="30" y="34" fill="#f8fafc" font-size="18" font-weight="700">Pi Architecture Overview</text>
+  <text x="30" y="54" fill="#94a3b8" font-size="9">Local CLI execution and optional remote-session packages are separate paths.</text>
+
+  <rect x="30" y="78" width="1180" height="324" rx="12" fill="none" stroke="#34d399" stroke-width="1.2" stroke-dasharray="8,4"/>
+  <text x="46" y="99" fill="#34d399" class="region">LOCAL PI CLI RUNTIME</text>
+
+  <rect x="30" y="432" width="1180" height="292" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="8,4"/>
+  <text x="46" y="453" fill="#fbbf24" class="region">EXPERIMENTAL REMOTE-SESSION SUBSYSTEM — NOT A PI CLI MODE</text>
+
+  <!-- Local runtime connections -->
+  <line x1="216" y1="176" x2="274" y2="176" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#arrow-cyan)"/>
+  <line x1="456" y1="176" x2="514" y2="176" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="696" y1="176" x2="754" y2="176" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="936" y1="176" x2="994" y2="176" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M365 211 L365 270" fill="none" stroke="#a78bfa" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <path d="M605 211 L605 305 L755 305" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <path d="M845 211 L845 270" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+  <!-- Local runtime boxes -->
+  <g>
+    <rect x="54" y="141" width="162" height="70" rx="7" fill="#0f172a"/>
+    <rect x="54" y="141" width="162" height="70" rx="7" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="135" y="169" class="name">Terminal + Mode</text>
+    <text x="135" y="187" class="sub">interactive / print / RPC</text>
+  </g>
+  <g>
+    <rect x="274" y="141" width="182" height="70" rx="7" fill="#0f172a"/>
+    <rect x="274" y="141" width="182" height="70" rx="7" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="365" y="169" class="name">pi-coding-agent</text>
+    <text x="365" y="187" class="sub">AgentSession + runtime services</text>
+  </g>
+  <g>
+    <rect x="514" y="141" width="182" height="70" rx="7" fill="#0f172a"/>
+    <rect x="514" y="141" width="182" height="70" rx="7" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="605" y="169" class="name">pi-agent-core</text>
+    <text x="605" y="187" class="sub">Agent state + agent-loop</text>
+  </g>
+  <g>
+    <rect x="754" y="141" width="182" height="70" rx="7" fill="#0f172a"/>
+    <rect x="754" y="141" width="182" height="70" rx="7" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="845" y="169" class="name">pi-ai</text>
+    <text x="845" y="187" class="sub">models + provider adapters</text>
+  </g>
+  <g>
+    <rect x="994" y="141" width="162" height="70" rx="7" fill="#0f172a"/>
+    <rect x="994" y="141" width="162" height="70" rx="7" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="1075" y="169" class="name">LLM Provider</text>
+    <text x="1075" y="187" class="sub">HTTP / SSE / SDK / WS</text>
+  </g>
+  <g>
+    <rect x="274" y="270" width="182" height="70" rx="7" fill="#0f172a"/>
+    <rect x="274" y="270" width="182" height="70" rx="7" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="365" y="298" class="name">SessionManager</text>
+    <text x="365" y="316" class="sub">JSONL transcript tree</text>
+  </g>
+  <g>
+    <rect x="755" y="270" width="180" height="70" rx="7" fill="#0f172a"/>
+    <rect x="755" y="270" width="180" height="70" rx="7" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="845" y="298" class="name">pi-telemetry</text>
+    <text x="845" y="316" class="sub">cross-cutting observability</text>
+  </g>
+
+  <!-- Remote subsystem connections -->
+  <line x1="210" y1="550" x2="250" y2="550" stroke="#fb923c" stroke-width="1.6" marker-end="url(#arrow-orange)"/>
+  <line x1="430" y1="550" x2="470" y2="550" stroke="#fb923c" stroke-width="1.6" marker-end="url(#arrow-orange)"/>
+  <line x1="650" y1="550" x2="690" y2="550" stroke="#fb923c" stroke-width="1.6" marker-end="url(#arrow-orange)"/>
+  <line x1="870" y1="550" x2="910" y2="550" stroke="#fb923c" stroke-width="1.6" marker-end="url(#arrow-orange)"/>
+  <line x1="1090" y1="550" x2="1130" y2="550" stroke="#fb923c" stroke-width="1.6" marker-end="url(#arrow-orange)"/>
+
+  <!-- Remote subsystem boxes -->
+  <g>
+    <rect x="50" y="515" width="160" height="70" rx="7" fill="#0f172a"/>
+    <rect x="50" y="515" width="160" height="70" rx="7" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="130" y="543" class="name">Host Application</text>
+    <text x="130" y="561" class="sub">owns UI and connection</text>
+  </g>
+  <g>
+    <rect x="250" y="515" width="180" height="70" rx="7" fill="#0f172a"/>
+    <rect x="250" y="515" width="180" height="70" rx="7" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="340" y="543" class="name">coding-agent/client</text>
+    <text x="340" y="561" class="sub">RemoteSession controller</text>
+  </g>
+  <g>
+    <rect x="470" y="515" width="180" height="70" rx="7" fill="#0f172a"/>
+    <rect x="470" y="515" width="180" height="70" rx="7" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="560" y="543" class="name">pi-client</text>
+    <text x="560" y="561" class="sub">leases + request correlation</text>
+  </g>
+  <g>
+    <rect x="690" y="515" width="180" height="70" rx="7" fill="#0f172a"/>
+    <rect x="690" y="515" width="180" height="70" rx="7" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="780" y="543" class="name">Transport</text>
+    <text x="780" y="561" class="sub">Unix socket / WebSocket / custom</text>
+  </g>
+  <g>
+    <rect x="910" y="515" width="180" height="70" rx="7" fill="#0f172a"/>
+    <rect x="910" y="515" width="180" height="70" rx="7" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="1000" y="543" class="name">pi-server</text>
+    <text x="1000" y="561" class="sub">protocol + session ownership</text>
+  </g>
+  <g>
+    <rect x="1130" y="515" width="60" height="70" rx="7" fill="#0f172a"/>
+    <rect x="1130" y="515" width="60" height="70" rx="7" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="1160" y="543" class="name" font-size="10">Host</text>
+    <text x="1160" y="559" class="sub">service</text>
+  </g>
+  <g>
+    <rect x="470" y="625" width="620" height="54" rx="7" fill="#0f172a"/>
+    <rect x="470" y="625" width="620" height="54" rx="7" fill="rgba(120,53,15,0.18)" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="5,4"/>
+    <text x="780" y="648" class="name">pi-protocol</text>
+    <text x="780" y="665" class="sub">shared schemas, length-prefixed CBOR framing, snapshots, commands, and events</text>
+  </g>
+  <path d="M560 585 L560 625" fill="none" stroke="#fb923c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-orange)"/>
+  <path d="M1000 585 L1000 625" fill="none" stroke="#fb923c" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-orange)"/>
+
+  <!-- Connector labels are painted after boxes so they remain readable. -->
+  <text x="245" y="132" class="label">events / input</text>
+  <text x="725" y="132" class="label">stream()</text>
+  <text x="965" y="132" class="label">network</text>
+  <text x="417" y="248" class="label">JSONL tree</text>
+  <text x="670" y="500" class="label">ordered bytes</text>
+  <text x="890" y="500" class="label">CBOR protocol</text>
+
+  <text x="30" y="746" fill="#64748b" font-size="8">Solid arrows show primary calls or transport flow. Dashed links show shared infrastructure dependencies.</text>
+</svg>
