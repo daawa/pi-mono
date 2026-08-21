@@ -1,12 +1,16 @@
 import { accessSync, constants, existsSync, readFileSync, realpathSync } from "fs";
 import { homedir } from "os";
 import { basename, dirname, join, resolve, sep, win32 } from "path";
+import { fileURLToPath } from "url";
 import { spawnProcessSync } from "./utils/child-process.ts";
 import { normalizePath } from "./utils/paths.ts";
 
 // =============================================================================
 // Package Detection
 // =============================================================================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Detect if we're running as a Bun compiled binary.
@@ -71,7 +75,7 @@ export function detectInstallMethod(): InstallMethod {
 		return "bun-binary";
 	}
 
-	const resolvedPath = `${import.meta.dirname}\0${process.execPath || ""}`.toLowerCase().replace(/\\/g, "/");
+	const resolvedPath = `${__dirname}\0${process.execPath || ""}`.toLowerCase().replace(/\\/g, "/");
 
 	if (resolvedPath.includes("/pnpm/") || resolvedPath.includes("/.pnpm/")) {
 		return "pnpm";
@@ -357,7 +361,8 @@ export function getUpdateInstruction(packageName: string): string {
 /**
  * Get the base directory for resolving package assets (themes, package.json, README.md, CHANGELOG.md).
  * - For Bun binary: returns the directory containing the executable
- * - For Node.js or Bun: returns the parent of the module directory (the package root)
+ * - For Node.js (dist/): returns __dirname (the dist/ directory)
+ * - For tsx (src/): returns parent directory (the package root)
  */
 export function getPackageDir(): string {
 	// Allow override via environment variable (useful for Nix/Guix where store paths tokenize poorly)
@@ -366,7 +371,20 @@ export function getPackageDir(): string {
 		return normalizePath(envDir);
 	}
 
-	return dirname(isBunBinary ? process.execPath : import.meta.dirname);
+	if (isBunBinary) {
+		// Bun binary: process.execPath points to the compiled executable
+		return dirname(process.execPath);
+	}
+	// Node.js: walk up from __dirname until we find package.json
+	let dir = __dirname;
+	while (dir !== dirname(dir)) {
+		if (existsSync(join(dir, "package.json"))) {
+			return dir;
+		}
+		dir = dirname(dir);
+	}
+	// Fallback (shouldn't happen)
+	return __dirname;
 }
 
 /**
