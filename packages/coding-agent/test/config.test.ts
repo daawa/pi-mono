@@ -1,9 +1,10 @@
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { delimiter, join } from "path";
+import { delimiter, dirname, join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
 import {
 	detectInstallMethod,
+	getPackageDir,
 	getSelfUpdateCommand,
 	getSelfUpdateUnavailableInstruction,
 	getUpdateInstruction,
@@ -144,6 +145,14 @@ function createFakeBunScript(bunBin: string): string {
 	const escapedBunBin = bunBin.replaceAll("'", "'\\''");
 	return `#!/bin/sh\nif [ "$1" = "pm" ] && [ "$2" = "bin" ] && [ "$3" = "-g" ]; then\n\tprintf '%s\\n' '${escapedBunBin}'\n\texit 0\nfi\nexit 1\n`;
 }
+
+describe("getPackageDir", () => {
+	test("returns the package root when running from source", () => {
+		delete process.env.PI_PACKAGE_DIR;
+
+		expect(getPackageDir()).toBe(dirname(import.meta.dirname));
+	});
+});
 
 describe("detectInstallMethod", () => {
 	test("detects pnpm from Windows .pnpm install paths", () => {
