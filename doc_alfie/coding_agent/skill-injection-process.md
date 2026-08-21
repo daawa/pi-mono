@@ -69,7 +69,7 @@ Skill paths enter the runtime from:
 | Global Pi skills | `~/.pi/agent/skills/` |
 | Global Agent Skills | `~/.agents/skills/` |
 | Project Pi skills | `.pi/skills/` after the project is trusted |
-| Project Agent Skills | `.agents/skills/` in `cwd` and ***ancestor directories***, up to the Git repository root or filesystem root, after the project is trusted |
+| Project Agent Skills | `.agents/skills/` in `cwd` and its ancestors, scanning from `cwd` upward. The detected Git repository root is included, then scanning stops. If no Git root is found, the filesystem root is included, then scanning stops. Requires project trust. |
 | Packages | `skills/` directories or `pi.skills` entries in `package.json` |
 | Settings | `skills` arrays in global or project settings |
 | CLI | `--skill <path>` |
@@ -87,6 +87,30 @@ For name collisions, explicit CLI paths are loaded before configured resources. 
 5. packages
 
 SDK additional paths and extension-discovered paths are appended to the existing path set. `skillsOverride` can replace the final loaded result.
+
+### Ancestor scan boundary and order
+
+Assume the directory hierarchy is:
+
+```text
+A/
+  .agents/skills/
+  B/                    # Git repository root; contains .git
+    .agents/skills/
+    C/                  # cwd
+      .agents/skills/
+```
+
+`collectAncestorAgentsSkillDirs(C)` returns the directories in this order:
+
+```text
+C/.agents/skills
+B/.agents/skills
+```
+
+The scan includes `B/.agents/skills` because `B` is the Git root, then stops. It does **not** scan `A/.agents/skills`, even though `A` is an ancestor. If no ancestor contains `.git`, the same upward walk continues through every ancestor and includes the filesystem root's `.agents/skills` before stopping.
+
+This nearest-to-farthest order also affects collisions within project auto-discovery. If `C/.agents/skills` and `B/.agents/skills` contain skills with the same frontmatter `name`, the skill found under `C` is loaded first and wins; the `B` skill produces a collision diagnostic. Discovery inside each `.agents/skills` directory remains recursive and only accepts directories containing `SKILL.md`, not direct root `.md` files.
 
 ## Discovery Rules
 

@@ -15,6 +15,7 @@ This document explains how Pi creates tools such as `read`, `bash`, `edit`, and 
 - [Execution Path](#execution-path)
 - [Dynamic Tool Loading](#dynamic-tool-loading)
 - [Rendering](#rendering)
+- [Source Map](#source-map)
 - [Debugging Checklist](#debugging-checklist)
 
 ## Main Flow
@@ -102,6 +103,8 @@ Tool API schemas and system-prompt descriptions are separate:
 
 A custom tool without `promptSnippet` remains callable by the model through its provider schema; it is only absent from the textual `Available tools` section.
 
+These automatic tool contributions apply only when Pi builds its default system prompt. If the resource loader supplies a custom system prompt, Pi uses that text without inserting `promptSnippet` or `promptGuidelines`. The active tools are still sent through `Context.tools`, so a tool can remain callable even when the custom prompt does not describe it.
+
 ## Injection into Agent State
 
 `AgentSession.setActiveToolsByName()` is the direct injection point:
@@ -165,7 +168,12 @@ loader tool executes
   -> next provider request sees new_tool
 ```
 
-Provider adapters with native deferred-tool support can anchor the new definitions at that tool result and preserve a stable schema prefix. Other providers receive the complete current active list on the next request. Replacements and removals use this full-list fallback rather than deferred loading.
+Provider adapters with native deferred-tool support can anchor the new definitions at that tool result and preserve a stable schema prefix. The current native paths are:
+
+- Anthropic Messages: insert `tool_reference` blocks when `supportsToolReferences` is enabled.
+- OpenAI Responses and OpenAI Codex Responses: insert message-anchored `additional_tools` items when `supportsAdditionalTools` is enabled, or client-executed tool-search items when `supportsToolSearch` is enabled.
+
+These paths are model/provider compatibility features, not behavior shared by every adapter. Other providers receive the complete current active list on the next request. Replacements and removals use this full-list fallback rather than deferred loading.
 
 Activating a tool with `promptSnippet` or `promptGuidelines` also changes the system prompt, which can invalidate a provider's cached prefix even when native deferred schemas are supported.
 
@@ -174,6 +182,22 @@ Activating a tool with `promptSnippet` or `promptGuidelines` also changes the sy
 `renderCall`, `renderResult`, and `renderShell` are local TUI concerns and never enter `Context.tools`.
 
 When an extension or SDK tool overrides a built-in tool, execution uses the winning registry definition. Rendering is resolved separately for each slot: an override-provided renderer wins, while an omitted `renderCall` or `renderResult` falls back to the built-in renderer. `renderShell: "self"` makes the tool responsible for its own framing.
+
+## Source Map
+
+The main source-of-truth locations for this flow are:
+
+| Concern | Source |
+| --- | --- |
+| SDK option selection | `packages/coding-agent/src/core/sdk.ts` |
+| Registry merge, filtering, activation, and next-turn refresh | `packages/coding-agent/src/core/agent-session.ts` |
+| Built-in definitions | `packages/coding-agent/src/core/tools/index.ts` and sibling tool files |
+| `ToolDefinition` to `AgentTool` conversion | `packages/coding-agent/src/core/tools/tool-definition-wrapper.ts` and `packages/coding-agent/src/core/extensions/wrapper.ts` |
+| Default/custom system-prompt behavior | `packages/coding-agent/src/core/system-prompt.ts` |
+| Tool execution and continuation | `packages/agent/src/agent-loop.ts` |
+| Provider-facing `Tool` and `addedToolNames` types | `packages/ai/src/types.ts` |
+| Deferred-tool placement | `packages/ai/src/utils/deferred-tools.ts`, `packages/ai/src/api/anthropic-messages.ts`, and the OpenAI Responses adapters |
+| Interactive rendering fallback | `packages/coding-agent/src/modes/interactive/components/tool-execution.ts` |
 
 ## Debugging Checklist
 
