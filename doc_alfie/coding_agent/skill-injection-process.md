@@ -2,6 +2,18 @@
 
 This document explains how Pi creates skill metadata from `SKILL.md` files, injects the available skill list into the system prompt, and expands explicit `/skill:name` commands into full skill instructions.
 
+## Table of Contents
+
+- [Main Flow](#main-flow)
+- [Skill File Shape](#skill-file-shape)
+- [Skill Sources](#skill-sources)
+- [Discovery Rules](#discovery-rules)
+- [System Prompt Injection](#system-prompt-injection)
+- [Explicit Skill Command Injection](#explicit-skill-command-injection)
+- [LLM Boundary](#llm-boundary)
+- [Runtime UI Behavior](#runtime-ui-behavior)
+- [Debugging Checklist](#debugging-checklist)
+
 ## Main Flow
 
 Skills have two injection paths:
@@ -55,24 +67,81 @@ Skill paths enter the runtime from:
 | Source | Path or API |
 | --- | --- |
 | Global Pi skills | `~/.pi/agent/skills/` |
-| Project Pi skills | `.pi/skills/` |
-| Packages | package resources and package config |
-| Settings | `skills` array in settings |
+| Global Agent Skills | `~/.agents/skills/` |
+| Project Pi skills | `.pi/skills/` after the project is trusted |
+| Project Agent Skills | `.agents/skills/` in `cwd` and its ancestors, scanning from `cwd` upward. The detected Git repository root is included, then scanning stops. If no Git root is found, the filesystem root is included, then scanning stops. Requires project trust. |
+| Packages | `skills/` directories or `pi.skills` entries in `package.json` |
+| Settings | `skills` arrays in global or project settings |
 | CLI | `--skill <path>` |
 | Extensions | `resources_discover` event returning `skillPaths` |
 | SDK | `DefaultResourceLoader` options such as additional skill paths or overrides |
 
-`--no-skills` disables normal discovery, but explicit CLI/additional skill paths can still load.
+`--no-skills` disables normal configured and auto-discovered skills. Explicit CLI and SDK additional paths still load, and extensions can add skill paths later through `resources_discover`.
+
+For name collisions, explicit CLI paths are loaded before configured resources. Configured resource precedence is:
+
+1. project settings
+2. project auto-discovery
+3. user settings
+4. user auto-discovery
+5. packages
+
+SDK additional paths and extension-discovered paths are appended to the existing path set. `skillsOverride` can replace the final loaded result.
+
+### Ancestor scan boundary and order
+
+Assume the directory hierarchy is:
+
+```text
+A/
+  .agents/skills/
+  B/                    # Git repository root; contains .git
+    .agents/skills/
+    C/                  # cwd
+      .agents/skills/
+```
+
+`collectAncestorAgentsSkillDirs(C)` returns the directories in this order:
+
+```text
+C/.agents/skills
+B/.agents/skills
+```
+
+The scan includes `B/.agents/skills` because `B` is the Git root, then stops. It does **not** scan `A/.agents/skills`, even though `A` is an ancestor. If no ancestor contains `.git`, the same upward walk continues through every ancestor and includes the filesystem root's `.agents/skills` before stopping.
+
+This nearest-to-farthest order also affects collisions within project auto-discovery. If `C/.agents/skills` and `B/.agents/skills` contain skills with the same frontmatter `name`, the skill found under `C` is loaded first and wins; the `B` skill produces a collision diagnostic. Discovery inside each `.agents/skills` directory remains recursive and only accepts directories containing `SKILL.md`, not direct root `.md` files.
 
 ## Discovery Rules
 
-`loadSkillsFromDir()` follows these rules:
+Automatic discovery first resolves individual skill paths through `DefaultPackageManager`. Pi and Agent Skills locations differ at the root:
+
+- `~/.pi/agent/skills/` and project `.pi/skills/` **accept** direct root `.md` files
+- `~/.agents/skills/` and project `.agents/skills/` **ignore** direct root `.md` files
+- all locations **recursively discover** directories containing `SKILL.md`
+
+Once a directory is passed to `loadSkillsFromDir()`, it follows these rules:
 
 - if a directory contains `SKILL.md`, treat it as a skill root and do not recurse further
-- otherwise, load direct `.md` children in the root
+- if the initial directory has no `SKILL.md`, load its immediate `.md` children as standalone skills
 - recurse into subdirectories to find `SKILL.md`
+- do not load arbitrary `.md` files inside those subdirectories
 - skip hidden entries and `node_modules`
 - apply ignore files such as `.gitignore`, `.ignore`, and `.fdignore`
+
+For example:
+
+```text
+skills/
+  review.md          # loaded as a standalone skill
+  summarize.md       # loaded as a standalone skill
+  nested/
+    notes.md         # not loaded
+    task/
+      SKILL.md       # loaded as a directory-based skill
+```
+
+Automatic `.agents/skills/` discovery is stricter: it ignores `review.md` and `summarize.md` at the root and only discovers directories containing `SKILL.md`.
 
 `loadSkillFromFile()` parses frontmatter, validates the name and description, and still loads skills with validation warnings unless the description is missing.
 
@@ -92,7 +161,7 @@ Description validation:
 
 ## System Prompt Injection
 
-`AgentSession` rebuilds the system prompt from active tools, context files, prompt metadata, and loaded skills.
+`AgentSession` rebuilds the system prompt from active tool snippets and guidelines, context files, configured system-prompt content, and loaded skills.
 
 `buildSystemPrompt()` appends skills only when the `read` tool is active. This guard exists because automatic skill usage requires the model to read the full `SKILL.md` itself. If `read` is unavailable, Pi omits the automatic skill list.
 
@@ -112,16 +181,50 @@ At this stage, the model sees only the skill name, description, and location. It
 
 ## Explicit Skill Command Injection
 
-Interactive mode registers `/skill:name` commands when `enableSkillCommands` is enabled. RPC exposes the same command names through command listing.
+### `enableSkillCommands`
+
+`enableSkillCommands` controls whether interactive autocomplete registers each loaded skill as `/skill:name`. It is a top-level setting and defaults to `true` when omitted:
+
+```json
+{
+  "enableSkillCommands": false
+}
+```
+
+It can also be changed through interactive `/settings`. The UI writes the global setting, saves it, and rebuilds the autocomplete provider.
+
+**The setting controls *command discovery*, not *command expansion***:
+
+- `true`: interactive autocomplete includes `/skill:name` entries
+- `false`: those autocomplete entries are hidden, but manually submitted `/skill:name` text still expands when normal prompt expansion is enabled
+- RPC `get_commands` lists every loaded skill independently of this interactive setting
+
+`AgentSession._expandSkillCommand()` does not read `enableSkillCommands`. Normal `prompt()` calls expand skill commands through the `expandPromptTemplates` path, which defaults to enabled.
+
+### Expansion
 
 When the user sends `/skill:name args`, `AgentSession._expandSkillCommand()`:
 
 1. looks up the skill by name
 2. reads the full skill file
 3. strips frontmatter
-4. wraps the body in a `<skill name="..." location="...">` block
-5. appends user args after the block
+4. wraps the body in a `<skill name="..." location="...">` block and prepends `References are relative to <baseDir>.`
+5. appends user args as raw text after the block, without a `User:` label
 6. sends the expanded text through the normal prompt path
+
+The resulting text has this shape:
+
+```xml
+<skill name="my-skill" location="/absolute/path/to/my-skill/SKILL.md">
+References are relative to /absolute/path/to/my-skill.
+
+# My Skill
+
+Follow these steps...
+</skill>
+
+user arguments
+```
 
 This path works for `disable-model-invocation: true` skills because it bypasses the automatic available-skills list and injects the full skill by explicit user command.
 
@@ -150,10 +253,11 @@ The `read` tool also classifies reads of `SKILL.md` as compact skill reads in th
 Use this path when a skill is missing or not triggering:
 
 1. Check whether the skill was discovered through `session.resourceLoader.getSkills().skills`.
-2. Check `SKILL.md` frontmatter has a non-empty `description`.
-3. Check name validation.
-4. Check for name collisions; first loaded skill wins.
-5. Check whether `disable-model-invocation: true` hides it from the automatic system prompt list.
-6. Check whether `read` is active. Without `read`, automatic skill listing is omitted.
-7. Check whether `enableSkillCommands` is `true` for `/skill:name` completion.
-8. Use `/skill:name` to force full skill injection when the model does not choose the skill from metadata.
+2. For project-local skills, check that the project is trusted and that the expected `.agents/skills/` ancestor is inside the discovery boundary.
+3. Check `SKILL.md` frontmatter has a non-empty `description`.
+4. Check name validation.
+5. Check for name collisions; the first loaded skill wins according to source precedence.
+6. Check whether `disable-model-invocation: true` hides it from the automatic system prompt list.
+7. Check whether `read` is active. Without `read`, automatic skill listing is omitted.
+8. Check whether `enableSkillCommands` is `true` for interactive `/skill:name` completion.
+9. Use `/skill:name` to force full skill injection when the model does not choose the skill from metadata.

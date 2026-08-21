@@ -14,6 +14,7 @@ Last verified against `main2` at `d6ad4b88` on 2026-06-24.
 - [Communication and Transports](./communication-transports.md): in-process package boundaries and external transport boundaries.
 - [Functions Reference](./functions-reference.md): central public APIs and important orchestration functions.
 - [Debugging Workspace Packages](./debugging-workspace-packages.md): npm workspace links, package exports, `dist`, and source map behavior.
+- [Provider Model Resolution](./providers_models_resovle.md): bundled model data, runtime catalog caching, merge precedence, refreshes, and upgrades.
 - [Tool Injection Process](./coding_agent/tool-injection-process.md): how `ToolDefinition` values become active `AgentTool` values and provider-facing schemas.
 - [Skill Injection Process](./coding_agent/skill-injection-process.md): how `SKILL.md` files are discovered, listed in prompts, and explicitly expanded.
 

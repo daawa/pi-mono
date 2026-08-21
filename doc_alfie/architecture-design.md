@@ -2,23 +2,47 @@
 
 ## Package Layers
 
-The runtime is layered from provider APIs up to the user-facing CLI:
+The local CLI runtime is layered from provider APIs up to the user-facing application:
 
 ```text
 packages/coding-agent
-  depends on packages/agent, packages/ai, packages/tui
+  local application layer; depends on packages/agent, packages/ai, packages/tui
 
 packages/agent
-  depends on packages/ai
+  generic agent runtime; depends on packages/ai
 
 packages/ai
   owns provider adapters, model registries, auth primitives, stream types
 
 packages/tui
   independent terminal UI foundation
+
+packages/telemetry
+  shared observability primitives used by packages/ai and packages/agent
 ```
 
-The intended dependency direction is one-way. `pi-ai` knows nothing about agents. `pi-agent-core` knows nothing about the coding-agent CLI or TUI. `pi-tui` is a reusable rendering layer. `pi-coding-agent` composes all of them into the `pi` application.
+The intended dependency direction is one-way. `pi-ai` knows nothing about agents. `pi-agent-core` knows nothing about the coding-agent CLI or TUI. `pi-tui` is a reusable rendering layer. `pi-coding-agent` composes these packages into the local `pi` application. Telemetry is a cross-cutting dependency rather than a higher application layer.
+
+The repository also contains an experimental remote-session subsystem:
+
+```text
+packages/protocol
+  shared CBOR schemas, framing, and wire types
+
+packages/client
+  transport-neutral remote-session client; depends on packages/protocol
+
+packages/server
+  embeddable remote-session server; depends on packages/protocol and packages/ai
+
+packages/coding-agent/client
+  higher-level RemoteSession controller; depends on packages/client and
+  packages/protocol
+```
+
+`@earendil-works/pi-coding-agent/client` is a separate package export, which is why `pi-client` and `pi-protocol` are dependencies of the coding-agent npm package. The normal `pi` binary does not import this client surface, start a `PiServer`, or provide a remote-connect CLI mode. Host applications must provide the server service and choose a transport, such as a Unix-domain socket or WebSocket.
+
+![Pi local and remote architecture](diagram/architecture-overview.svg)
 
 ## Runtime Startup Flow
 
@@ -26,13 +50,15 @@ The intended dependency direction is one-way. `pi-ai` knows nothing about agents
 pi binary
   -> packages/coding-agent/src/cli.ts
   -> main(args)
-  -> parse args and package/config fast paths
+  -> auth and package/config command fast paths
+  -> parse args and version/export fast paths
   -> resolve app mode
   -> run migrations
-  -> load startup settings
+  -> load startup settings for session selection
   -> choose or create SessionManager
-  -> create cwd-bound services
-  -> resolve model, thinking level, resources, tools, extensions, trust
+  -> resolve the effective session cwd
+  -> create cwd-bound settings, model, resource, extension, and trust services
+  -> resolve model, thinking level, scoped models, and tools
   -> create AgentSessionRuntime
   -> dispatch interactive, print, json, or rpc mode
 ```
@@ -80,6 +106,8 @@ mode layer
 
 - `Agent` owns mutable state, queues, abort handling, event subscriptions, and run settlement.
 - `agent-loop` owns turn execution, provider streaming, tool validation, tool execution order, and event sequencing.
+
+![Prompt execution sequence](diagram/prompt-execution-sequence.svg)
 
 ## Event Model
 
@@ -136,7 +164,9 @@ Compatibility layer:
 - It keeps `registerApiProvider()`, `getApiProvider()`, `stream()`, `complete()`, `streamSimple()`, and `completeSimple()` available for existing callers.
 - It is explicitly marked temporary in source.
 
-Current `pi-coding-agent` still uses `@earendil-works/pi-ai/compat` inside `ModelRegistry`, especially for `models.json` custom provider registration and legacy model override behavior. New standalone integrations should prefer `createModels()` and provider factories.
+`pi-coding-agent` now uses a `ModelRuntime` built on the modern `Models` API for built-in providers, `models.json`, credentials, catalog refresh, availability, and extension provider registration. `ModelRegistry` is a synchronous compatibility facade for extensions over that runtime; it does not own a separate global registry.
+
+Some coding-agent paths still import `@earendil-works/pi-ai/compat`, including the default low-level stream function, legacy API composition, compaction helpers, bundled extension compatibility, and image-related setup. New standalone integrations should prefer `createModels()` and provider factories.
 
 ## Tool Architecture
 
@@ -252,10 +282,11 @@ Interactive coding-agent mode builds on this with chat message components, edito
 | --- | --- |
 | Provider factories and model collections | `pi-ai` provider/model modules |
 | Legacy provider stream registry | `pi-ai/compat` |
+| Coding-agent models, credentials, catalogs, and provider composition | `pi-coding-agent` `ModelRuntime` |
 | Generic prompt state and queues | `pi-agent-core` `Agent` |
 | Turn execution state | `pi-agent-core` `agent-loop` |
 | Session transcript tree | `pi-coding-agent` `SessionManager` |
-| Runtime config, auth, resources | `pi-coding-agent` services |
+| Cwd-bound settings, resources, and trust | `pi-coding-agent` runtime services |
 | Extension runtime state | `pi-coding-agent` extension runner and extension contexts |
 | User interface state | mode-specific code, especially `InteractiveMode` and TUI components |
 | Terminal rendering state | `pi-tui` `TUI` |
