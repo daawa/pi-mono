@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 720">
+  <style>
+    text { font-family: 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Code', monospace; }
+    .title { fill: #f8fafc; font-size: 16px; font-weight: 700; }
+    .subtitle { fill: #94a3b8; font-size: 9px; }
+    .region-label { font-size: 9px; font-weight: 600; }
+    .name { fill: #f8fafc; font-size: 11px; font-weight: 600; text-anchor: middle; }
+    .detail { fill: #94a3b8; font-size: 8px; text-anchor: middle; }
+    .legend { fill: #cbd5e1; font-size: 8px; }
+  </style>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <rect width="100%" height="100%" fill="url(#grid)"/>
+
+  <rect x="25" y="75" width="205" height="545" rx="12" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+  <rect x="265" y="75" width="620" height="545" rx="12" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+  <rect x="920" y="75" width="235" height="545" rx="12" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="8,4"/>
+
+  <!-- Connections are painted before component boxes. -->
+  <path d="M 205 165 L 305 165" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+  <path d="M 205 305 L 275 305 L 275 220 L 385 220 L 385 200" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <path d="M 205 445 L 255 445 L 255 305 L 305 305" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <path d="M 545 165 L 590 165" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M 710 200 L 710 270" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M 425 340 L 425 385 L 575 385 L 575 410" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M 590 305 L 545 305" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M 575 480 L 575 510" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <path d="M 815 445 L 905 445 L 905 190 L 955 190" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1035 225 L 1035 300" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 1035 370 L 1035 440" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 395 550 L 350 550 L 350 200" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M 575 550 L 575 220 L 650 220 L 650 200" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M 755 550 L 860 550 L 860 165 L 830 165" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Input boxes -->
+  <rect x="50" y="130" width="155" height="70" rx="6" fill="#0f172a"/>
+  <rect x="50" y="130" width="155" height="70" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text class="name" x="127.5" y="157">SettingsManager</text>
+  <text class="detail" x="127.5" y="176">user + trusted project</text>
+  <text class="detail" x="127.5" y="189">packages and local arrays</text>
+
+  <rect x="50" y="270" width="155" height="70" rx="6" fill="#0f172a"/>
+  <rect x="50" y="270" width="155" height="70" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text class="name" x="127.5" y="297">CLI sources</text>
+  <text class="detail" x="127.5" y="316">-e / --extension</text>
+  <text class="detail" x="127.5" y="329">temporary scope</text>
+
+  <rect x="50" y="410" width="155" height="70" rx="6" fill="#0f172a"/>
+  <rect x="50" y="410" width="155" height="70" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text class="name" x="127.5" y="437">Filesystem</text>
+  <text class="detail" x="127.5" y="456">package roots, .pi/</text>
+  <text class="detail" x="127.5" y="469">and .agents/skills</text>
+
+  <!-- Core boxes -->
+  <rect x="305" y="130" width="240" height="70" rx="6" fill="#0f172a"/>
+  <rect x="305" y="130" width="240" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text class="name" x="425" y="157">1. Parse and normalize</text>
+  <text class="detail" x="425" y="176">npm | git | local</text>
+  <text class="detail" x="425" y="189">identity ignores version/ref</text>
+
+  <rect x="590" y="130" width="240" height="70" rx="6" fill="#0f172a"/>
+  <rect x="590" y="130" width="240" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text class="name" x="710" y="157">2. Acquire source</text>
+  <text class="detail" x="710" y="176">install / clone / reuse cache</text>
+  <text class="detail" x="710" y="189">scope-specific managed roots</text>
+
+  <rect x="305" y="270" width="240" height="70" rx="6" fill="#0f172a"/>
+  <rect x="305" y="270" width="240" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text class="name" x="425" y="297">4. Filter and enable</text>
+  <text class="detail" x="425" y="316">include, !exclude, +exact</text>
+  <text class="detail" x="425" y="329">-exact and autoload delta</text>
+
+  <rect x="590" y="270" width="240" height="70" rx="6" fill="#0f172a"/>
+  <rect x="590" y="270" width="240" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text class="name" x="710" y="297">3. Discover resources</text>
+  <text class="detail" x="710" y="316">pi manifest first</text>
+  <text class="detail" x="710" y="329">then convention directories</text>
+
+  <rect x="335" y="410" width="480" height="70" rx="6" fill="#0f172a"/>
+  <rect x="335" y="410" width="480" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text class="name" x="575" y="437">5. Accumulate, rank, canonicalize</text>
+  <text class="detail" x="575" y="456">Map preserves first path; precedence orders collision candidates</text>
+  <text class="detail" x="575" y="469">canonical path deduplication removes aliases and symlink duplicates</text>
+
+  <!-- Managed storage boxes -->
+  <rect x="305" y="520" width="180" height="60" rx="6" fill="#0f172a"/>
+  <rect x="305" y="520" width="180" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="395" y="545">User storage</text>
+  <text class="detail" x="395" y="564">agentDir/npm and git</text>
+
+  <rect x="495" y="520" width="160" height="60" rx="6" fill="#0f172a"/>
+  <rect x="495" y="520" width="160" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="575" y="545">Project storage</text>
+  <text class="detail" x="575" y="564">cwd/.pi/npm and git</text>
+
+  <rect x="665" y="520" width="180" height="60" rx="6" fill="#0f172a"/>
+  <rect x="665" y="520" width="180" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="755" y="545">Temporary cache</text>
+  <text class="detail" x="755" y="564">agentDir/tmp/extensions</text>
+
+  <!-- Output and consumer boxes -->
+  <rect x="955" y="155" width="160" height="70" rx="6" fill="#0f172a"/>
+  <rect x="955" y="155" width="160" height="70" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="1035" y="182">ResolvedPaths</text>
+  <text class="detail" x="1035" y="201">path + enabled</text>
+  <text class="detail" x="1035" y="214">source metadata</text>
+
+  <rect x="955" y="300" width="160" height="70" rx="6" fill="#0f172a"/>
+  <rect x="955" y="300" width="160" height="70" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="1035" y="327">DefaultResourceLoader</text>
+  <text class="detail" x="1035" y="346">loads only enabled paths</text>
+  <text class="detail" x="1035" y="359">keeps source metadata</text>
+
+  <rect x="955" y="440" width="160" height="70" rx="6" fill="#0f172a"/>
+  <rect x="955" y="440" width="160" height="70" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text class="name" x="1035" y="467">Runtime consumers</text>
+  <text class="detail" x="1035" y="486">extensions, skills,</text>
+  <text class="detail" x="1035" y="499">prompts and themes</text>
+
+  <!-- Labels, title, legend -->
+  <text class="title" x="25" y="35">Pi package manager: acquisition-to-resource pipeline</text>
+  <text class="subtitle" x="25" y="53">DefaultPackageManager owns package storage and resource resolution; loading/execution remains downstream.</text>
+  <text class="region-label" x="40" y="96" fill="#22d3ee">INPUTS</text>
+  <text class="region-label" x="280" y="96" fill="#34d399">DEFAULT PACKAGE MANAGER</text>
+  <text class="region-label" x="935" y="96" fill="#a78bfa">OUTPUT / CONSUMERS</text>
+  <rect x="25" y="650" width="1130" height="42" rx="6" fill="rgba(30,41,59,0.65)" stroke="#475569" stroke-width="1"/>
+  <circle cx="47" cy="671" r="5" fill="#22d3ee"/><text class="legend" x="60" y="674">configuration/input</text>
+  <circle cx="225" cy="671" r="5" fill="#34d399"/><text class="legend" x="238" y="674">processing</text>
+  <circle cx="385" cy="671" r="5" fill="#a78bfa"/><text class="legend" x="398" y="674">storage/output</text>
+  <path d="M 560 671 L 600 671" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text class="legend" x="612" y="674">storage interaction</text>
+  <text class="legend" x="1130" y="674" text-anchor="end">Primary flow: input → normalize → acquire → discover → filter → order → load</text>
+</svg>
