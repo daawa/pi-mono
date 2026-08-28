@@ -217,7 +217,12 @@ Project entries are inserted before user entries. Their metadata has `origin: "t
 
 ### Stage 4: auto-discover conventional local resources
 
-The manager scans the standard user directories and, when trusted, project directories:
+Here, `<base>` is the scope-specific resource directory:
+
+- for user resources, `<base>` is `agentDir`, normally `~/.pi/agent`;
+- for project resources, `<base>` is `cwd/.pi`, and it is scanned only when the project is trusted.
+
+For each applicable base, the manager scans these conventional directories:
 
 ```text
 <base>/extensions
