@@ -1,0 +1,153 @@
+<svg viewBox="0 0 1280 2010" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap');
+    text { font-family: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace; }
+    .title { fill: #f8fafc; font-size: 24px; font-weight: 700; }
+    .subtitle { fill: #94a3b8; font-size: 12px; }
+    .label { fill: #f8fafc; font-size: 13px; font-weight: 600; text-anchor: middle; }
+    .detail { fill: #94a3b8; font-size: 10px; text-anchor: middle; }
+    .edge-label { fill: #cbd5e1; font-size: 10px; font-weight: 600; }
+    .region-label { font-size: 11px; font-weight: 700; }
+    .happy { fill: none; stroke: #22d3ee; stroke-width: 2.2; marker-end: url(#arrow-cyan); }
+    .branch { fill: none; stroke: #fb923c; stroke-width: 2; stroke-dasharray: 8 5; marker-end: url(#arrow-orange); }
+  </style>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="2010" fill="#0f172a"/>
+  <rect width="1280" height="2010" fill="url(#grid)"/>
+
+  <!-- Lifecycle regions -->
+  <rect x="60" y="90" width="1160" height="650" rx="18" fill="#102733"/>
+  <rect x="60" y="770" width="1160" height="560" rx="18" fill="#1c1a24"/>
+  <rect x="60" y="1360" width="1160" height="570" rx="18" fill="#152133"/>
+
+  <rect x="85" y="110" width="250" height="36" rx="6" fill="#0b303c"/>
+  <rect x="85" y="790" width="250" height="36" rx="6" fill="#2b2118"/>
+  <rect x="85" y="1380" width="270" height="36" rx="6" fill="#172d46"/>
+  <text x="210" y="134" fill="#22d3ee" class="region-label" text-anchor="middle">LOW-LEVEL AGENT LOOP</text>
+  <text x="210" y="814" fill="#fbbf24" class="region-label" text-anchor="middle">CORE AGENT SETTLEMENT</text>
+  <text x="220" y="1404" fill="#60a5fa" class="region-label" text-anchor="middle">AGENTSESSION SETTLEMENT</text>
+
+  <!-- Connections -->
+  <path d="M640 240 L640 280" class="happy"/>
+  <path d="M640 340 L640 360" class="happy"/>
+  <path d="M640 460 L640 490" class="happy"/>
+  <path d="M640 590 L640 650" class="happy"/>
+  <path d="M750 410 L930 410" class="branch"/>
+  <path d="M750 540 L930 540" class="branch"/>
+  <path d="M640 710 L640 850" class="happy"/>
+  <path d="M640 930 L640 990" class="happy"/>
+  <path d="M640 1050 L640 1110" class="happy"/>
+  <path d="M640 1190 L640 1240" class="happy"/>
+  <path d="M640 1300 L640 1440" class="happy"/>
+  <path d="M640 1510 L640 1560" class="happy"/>
+  <path d="M640 1660 L640 1730" class="happy"/>
+  <path d="M770 1610 L930 1610" class="branch"/>
+  <path d="M640 1800 L640 1850" class="happy"/>
+
+  <!-- Arrow labels -->
+  <text x="655" y="478" fill="#34d399" class="edge-label">no</text>
+  <text x="785" y="398" fill="#fb923c" class="edge-label">yes</text>
+  <text x="655" y="620" fill="#34d399" class="edge-label">no</text>
+  <text x="785" y="528" fill="#fb923c" class="edge-label">yes</text>
+  <text x="655" y="1705" fill="#34d399" class="edge-label">no</text>
+  <text x="800" y="1598" fill="#fb923c" class="edge-label">yes</text>
+
+  <!-- Low-level loop nodes -->
+  <rect x="420" y="170" width="440" height="70" rx="8" fill="#0f172a"/>
+  <rect x="420" y="170" width="440" height="70" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.7"/>
+  <text x="640" y="200" class="label">assistant text response</text>
+  <text x="640" y="220" class="detail">normal stop reason · no tool calls</text>
+
+  <rect x="460" y="280" width="360" height="60" rx="8" fill="#0f172a"/>
+  <rect x="460" y="280" width="360" height="60" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.7"/>
+  <text x="640" y="316" class="label">emit turn_end</text>
+
+  <polygon points="640,360 750,410 640,460 530,410" fill="#0f172a"/>
+  <polygon points="640,360 750,410 640,460 530,410" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.7"/>
+  <text x="640" y="406" class="label">steering</text>
+  <text x="640" y="424" class="label">queued?</text>
+
+  <rect x="930" y="375" width="250" height="70" rx="8" fill="#0f172a"/>
+  <rect x="930" y="375" width="250" height="70" rx="8" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="1055" y="405" class="label">continue inner loop</text>
+  <text x="1055" y="425" class="detail">inject before next response</text>
+
+  <polygon points="640,490 750,540 640,590 530,540" fill="#0f172a"/>
+  <polygon points="640,490 750,540 640,590 530,540" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.7"/>
+  <text x="640" y="536" class="label">follow-ups</text>
+  <text x="640" y="554" class="label">queued?</text>
+
+  <rect x="930" y="505" width="250" height="70" rx="8" fill="#0f172a"/>
+  <rect x="930" y="505" width="250" height="70" rx="8" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="1055" y="535" class="label">continue outer loop</text>
+  <text x="1055" y="555" class="detail">inject as pending messages</text>
+
+  <rect x="480" y="650" width="320" height="60" rx="30" fill="#0f172a"/>
+  <rect x="480" y="650" width="320" height="60" rx="30" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.8"/>
+  <text x="640" y="686" class="label">emit agent_end</text>
+
+  <!-- Core Agent nodes -->
+  <rect x="420" y="850" width="440" height="80" rx="8" fill="#0f172a"/>
+  <rect x="420" y="850" width="440" height="80" rx="8" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.7"/>
+  <text x="640" y="880" class="label">processEvents(agent_end)</text>
+  <text x="640" y="901" class="detail">update state, then await every Agent listener</text>
+  <text x="640" y="917" class="detail">including AgentSession and extension event handling</text>
+
+  <rect x="460" y="990" width="360" height="60" rx="8" fill="#0f172a"/>
+  <rect x="460" y="990" width="360" height="60" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.7"/>
+  <text x="640" y="1016" class="label">loop and executor return</text>
+  <text x="640" y="1036" class="detail">runWithLifecycle enters finally</text>
+
+  <rect x="410" y="1110" width="460" height="80" rx="8" fill="#0f172a"/>
+  <rect x="410" y="1110" width="460" height="80" rx="8" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.7"/>
+  <text x="640" y="1140" class="label">finishRun()</text>
+  <text x="640" y="1161" class="detail">isStreaming=false · clear transient state</text>
+  <text x="640" y="1177" class="detail">resolve activeRun promise · activeRun=undefined</text>
+
+  <rect x="390" y="1240" width="500" height="60" rx="30" fill="#0f172a"/>
+  <rect x="390" y="1240" width="500" height="60" rx="30" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.8"/>
+  <text x="640" y="1266" class="label">core Agent is idle</text>
+  <text x="640" y="1286" class="detail">agent.waitForIdle() can resolve</text>
+
+  <!-- AgentSession nodes -->
+  <rect x="420" y="1440" width="440" height="70" rx="8" fill="#0f172a"/>
+  <rect x="420" y="1440" width="440" height="70" rx="8" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.7"/>
+  <text x="640" y="1470" class="label">_handlePostAgentRun()</text>
+  <text x="640" y="1490" class="detail">session remains active after core Agent settles</text>
+
+  <polygon points="640,1560 770,1610 640,1660 510,1610" fill="#0f172a"/>
+  <polygon points="640,1560 770,1610 640,1660 510,1610" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.7"/>
+  <text x="640" y="1598" class="label">retry, compaction,</text>
+  <text x="640" y="1616" class="label">or late queue?</text>
+
+  <rect x="930" y="1575" width="250" height="70" rx="8" fill="#0f172a"/>
+  <rect x="930" y="1575" width="250" height="70" rx="8" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.6"/>
+  <text x="1055" y="1605" class="label">agent.continue()</text>
+  <text x="1055" y="1625" class="detail">start another core run</text>
+
+  <rect x="440" y="1730" width="400" height="70" rx="8" fill="#0f172a"/>
+  <rect x="440" y="1730" width="400" height="70" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.7"/>
+  <text x="640" y="1760" class="label">_emitAgentSettled()</text>
+  <text x="640" y="1780" class="detail">clear active flag · await settled handlers</text>
+
+  <rect x="390" y="1850" width="500" height="60" rx="30" fill="#0f172a"/>
+  <rect x="390" y="1850" width="500" height="60" rx="30" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.8"/>
+  <text x="640" y="1876" class="label">AgentSession is idle</text>
+  <text x="640" y="1896" class="detail">session.waitForIdle() resolves</text>
+
+  <text x="640" y="1970" class="detail">The next user input starts a new run with the stored conversation transcript.</text>
+
+  <text x="36" y="38" class="title">From assistant response to idle</text>
+  <text x="36" y="62" class="subtitle">Low-level loop completion, core Agent settlement, and the wider coding-agent session boundary</text>
+</svg>

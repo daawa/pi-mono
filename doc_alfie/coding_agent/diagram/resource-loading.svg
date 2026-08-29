@@ -1,0 +1,234 @@
+<svg viewBox="0 0 1400 1225" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Pi resource-loading pipeline</title>
+  <desc id="desc">Configuration and explicit inputs pass through project trust, path resolution, resource-specific loading, SDK overrides, and session binding. Extensions can contribute skills, prompts, and themes after session start.</desc>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap');
+    text { font-family: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace; }
+    .title { fill: #f8fafc; font-size: 18px; font-weight: 700; }
+    .subtitle { fill: #94a3b8; font-size: 9px; }
+    .region-label { font-size: 9px; font-weight: 600; }
+    .box-title { fill: #f8fafc; font-size: 11px; font-weight: 600; text-anchor: middle; }
+    .box-sub { fill: #94a3b8; font-size: 8px; text-anchor: middle; }
+    .arrow-label { fill: #cbd5e1; font-size: 8px; text-anchor: middle; }
+    .note { fill: #94a3b8; font-size: 8px; }
+  </style>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+    </marker>
+  </defs>
+
+  <rect width="1400" height="1225" fill="#0f172a"/>
+  <rect width="1400" height="1225" fill="url(#grid)"/>
+
+  <text x="30" y="34" class="title">Pi resource loading</text>
+  <text x="30" y="51" class="subtitle">DefaultResourceLoader.reload() → ordered, attributed resources → AgentSession consumers</text>
+
+  <!-- Region boundaries -->
+  <rect x="25" y="68" width="1350" height="98" rx="12" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="38" y="84" fill="#22d3ee" class="region-label">INPUTS</text>
+  <rect x="25" y="188" width="1350" height="590" rx="12" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="38" y="204" fill="#34d399" class="region-label">RELOAD PIPELINE</text>
+  <rect x="25" y="805" width="1350" height="355" rx="12" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="38" y="821" fill="#a78bfa" class="region-label">SESSION BINDING AND CONSUMERS</text>
+
+  <text x="55" y="297" fill="#94a3b8" class="region-label">1 · RESOLVE SOURCES</text>
+  <text x="330" y="407" fill="#94a3b8" class="region-label">2 · MERGE AND CANONICALIZE PATHS</text>
+  <text x="55" y="547" fill="#94a3b8" class="region-label">3 · LOAD AND DEDUPLICATE BY RESOURCE TYPE</text>
+  <text x="510" y="697" fill="#94a3b8" class="region-label">4 · APPLY SDK TRANSFORMATIONS</text>
+
+  <!-- Connections: inputs to trust/resolution -->
+  <path d="M145 142 L145 280 L190 280 L190 310" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M355 142 L355 208 L310 228" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M565 142 L565 208 L320 232" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M775 142 L775 280 L450 280 L450 310" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M775 142 L775 450 L580 450" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+  <path d="M985 142 L985 510 L155 510 L155 560" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+  <path d="M1195 142 L1195 222 L1200 222" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Trust to resolvers -->
+  <path d="M270 272 L270 285 L190 285 L190 310" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+  <path d="M310 257 L310 275 L930 275 L930 310" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+  <path d="M1130 257 L1130 280 L1190 280 L1190 310" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Resolvers to ordered families -->
+  <path d="M190 370 L190 450 L320 450" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M450 370 L450 420" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M450 480 L450 525 L155 525 L890 525" fill="none" stroke="#34d399" stroke-width="1.5"/>
+  <path d="M155 525 L155 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M400 525 L400 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M645 525 L645 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M890 525 L890 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M930 370 L930 500 L1070 500 L1070 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+  <path d="M1190 370 L1190 560" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+  <!-- Families to overrides and session -->
+  <path d="M155 620 L155 675 L700 675 L700 710" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M400 620 L400 675" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M645 620 L645 675" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M890 620 L890 675" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M1190 620 L1190 675 L700 675" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M700 750 L700 845" fill="none" stroke="#a78bfa" stroke-width="1.8" marker-end="url(#arrow-violet)"/>
+
+  <!-- Session consumers -->
+  <path d="M700 905 L700 965 L215 965 L215 1010" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+  <path d="M700 905 L700 1010" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+  <path d="M700 905 L700 965 L1185 965 L1185 1010" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+
+  <!-- Extension contribution loop -->
+  <path d="M215 1070 L215 1130 L1340 1130 L1340 640 L400 640" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <path d="M400 640 L400 620" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-amber)"/>
+  <path d="M645 640 L645 620" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-amber)"/>
+  <path d="M890 640 L890 620" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-amber)"/>
+  <text x="1020" y="1147" class="arrow-label">resources_discover: append skill, prompt, and theme paths; then rebuild</text>
+
+  <!-- Input boxes: masks and visual layer -->
+  <g>
+    <rect x="55" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="55" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="145" y="115" class="box-title">User settings + auto</text>
+    <text x="145" y="130" class="box-sub">agentDir and ~/.agents</text>
+
+    <rect x="265" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="265" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="355" y="115" class="box-title">Project settings + auto</text>
+    <text x="355" y="130" class="box-sub">.pi and ancestor .agents</text>
+
+    <rect x="475" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="475" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="565" y="115" class="box-title">Packages</text>
+    <text x="565" y="130" class="box-sub">npm, git, local</text>
+
+    <rect x="685" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="685" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="775" y="115" class="box-title">CLI / explicit paths</text>
+    <text x="775" y="130" class="box-sub">-e, --skill, prompt, theme</text>
+
+    <rect x="895" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="895" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="985" y="115" class="box-title">Inline extension factories</text>
+    <text x="985" y="130" class="box-sub">named or anonymous factories</text>
+
+    <rect x="1105" y="94" width="180" height="48" rx="6" fill="#0f172a"/>
+    <rect x="1105" y="94" width="180" height="48" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="1195" y="115" class="box-title">Context hierarchy</text>
+    <text x="1195" y="130" class="box-sub">agentDir + root → cwd</text>
+  </g>
+
+  <!-- Trust and resolver boxes -->
+  <g>
+    <polygon points="270,208 330,240 270,272 210,240" fill="#0f172a"/>
+    <polygon points="270,208 330,240 270,272 210,240" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="270" y="237" class="box-title">Trusted?</text>
+    <text x="270" y="250" class="box-sub">project inputs gate</text>
+
+    <rect x="1040" y="213" width="180" height="44" rx="6" fill="#0f172a"/>
+    <rect x="1040" y="213" width="180" height="44" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="1130" y="232" class="box-title">Context selection</text>
+    <text x="1130" y="247" class="box-sub">not gated by trust</text>
+
+    <rect x="80" y="310" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="80" y="310" width="220" height="60" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="190" y="335" class="box-title">Package manager</text>
+    <text x="190" y="351" class="box-sub">manifest, filters, standard ranking</text>
+
+    <rect x="340" y="310" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="340" y="310" width="220" height="60" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="450" y="335" class="box-title">Temporary source resolver</text>
+    <text x="450" y="351" class="box-sub">-e can export every family</text>
+
+    <rect x="820" y="310" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="820" y="310" width="220" height="60" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="930" y="335" class="box-title">Prompt input resolver</text>
+    <text x="930" y="351" class="box-sub">existing path or literal text</text>
+
+    <rect x="1080" y="310" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1080" y="310" width="220" height="60" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="1190" y="335" class="box-title">Ancestor scanner</text>
+    <text x="1190" y="351" class="box-sub">one candidate per directory</text>
+
+    <rect x="320" y="420" width="260" height="60" rx="6" fill="#0f172a"/>
+    <rect x="320" y="420" width="260" height="60" rx="6" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="450" y="445" class="box-title">Path merge</text>
+    <text x="450" y="461" class="box-sub">resolve + canonical first-wins</text>
+  </g>
+
+  <!-- Loaded resource families -->
+  <g>
+    <rect x="45" y="560" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="45" y="560" width="220" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="155" y="585" class="box-title">Extensions</text>
+    <text x="155" y="601" class="box-sub">module import + factory execution</text>
+
+    <rect x="290" y="560" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="290" y="560" width="220" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="400" y="585" class="box-title">Skills</text>
+    <text x="400" y="601" class="box-sub">validate + dedupe by name</text>
+
+    <rect x="535" y="560" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="535" y="560" width="220" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="645" y="585" class="box-title">Prompt templates</text>
+    <text x="645" y="601" class="box-sub">parse frontmatter + first-wins</text>
+
+    <rect x="780" y="560" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="780" y="560" width="220" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="890" y="585" class="box-title">Themes</text>
+    <text x="890" y="601" class="box-sub">validate JSON + first-wins</text>
+
+    <rect x="1040" y="560" width="300" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1040" y="560" width="300" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="1190" y="585" class="box-title">Context + system prompt inputs</text>
+    <text x="1190" y="601" class="box-sub">ordered content and source paths</text>
+
+    <rect x="500" y="710" width="400" height="40" rx="6" fill="#0f172a"/>
+    <rect x="500" y="710" width="400" height="40" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+    <text x="700" y="735" class="box-title">Per-family SDK override callbacks</text>
+  </g>
+
+  <!-- Session and consumers -->
+  <g>
+    <rect x="555" y="845" width="290" height="60" rx="6" fill="#0f172a"/>
+    <rect x="555" y="845" width="290" height="60" rx="6" fill="rgba(59,130,246,0.3)" stroke="#60a5fa" stroke-width="1.8"/>
+    <text x="700" y="870" class="box-title">AgentSession binds extensions</text>
+    <text x="700" y="886" class="box-sub">session_start → resources_discover</text>
+
+    <rect x="75" y="1010" width="280" height="60" rx="6" fill="#0f172a"/>
+    <rect x="75" y="1010" width="280" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="215" y="1035" class="box-title">Extension runtime + tool registry</text>
+    <text x="215" y="1051" class="box-sub">commands, tools, flags, handlers, providers</text>
+
+    <rect x="560" y="1010" width="280" height="60" rx="6" fill="#0f172a"/>
+    <rect x="560" y="1010" width="280" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="700" y="1035" class="box-title">Final system prompt</text>
+    <text x="700" y="1051" class="box-sub">base → append → context → skills → cwd</text>
+
+    <rect x="1045" y="1010" width="280" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1045" y="1010" width="280" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="1185" y="1035" class="box-title">TUI and command expansion</text>
+    <text x="1185" y="1051" class="box-sub">themes, /skill:name, /template, diagnostics</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30,1195)">
+    <circle cx="6" cy="0" r="5" fill="#22d3ee"/><text x="18" y="3" class="note">inputs</text>
+    <circle cx="100" cy="0" r="5" fill="#34d399"/><text x="112" y="3" class="note">resolution</text>
+    <circle cx="220" cy="0" r="5" fill="#a78bfa"/><text x="232" y="3" class="note">loaded/runtime</text>
+    <circle cx="370" cy="0" r="5" fill="#fbbf24"/><text x="382" y="3" class="note">trust or extension feedback</text>
+    <circle cx="600" cy="0" r="5" fill="#fb7185"/><text x="612" y="3" class="note">SDK transformation</text>
+  </g>
+</svg>
