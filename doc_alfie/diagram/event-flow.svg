@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 950" role="img" aria-labelledby="title desc">
+<title id="title">Pi interactive request and event flow</title>
+<desc id="desc">Requests descend from the editor through the session and agent to the provider. Normalized stream events ascend through agent state, session extensions and persistence, and UI components to the terminal.</desc>
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+  <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#94a3b8"/></marker>
+</defs>
+<style>text{font-family:'SF Mono','Cascadia Code',monospace}.name{font-size:14px;font-weight:600;fill:#f8fafc}.sub{font-size:11px;fill:#cbd5e1}.note{font-size:11px;fill:#94a3b8}.edge{fill:none;stroke:#94a3b8;stroke-width:1.5;marker-end:url(#arrow)}</style>
+<rect width="1040" height="950" fill="#0f172a"/><rect width="1040" height="950" fill="url(#grid)"/>
+<rect x="30" y="150" width="470" height="650" rx="12" fill="none" stroke="#22d3ee" stroke-dasharray="8 4"/>
+<rect x="540" y="150" width="470" height="650" rx="12" fill="none" stroke="#34d399" stroke-dasharray="8 4"/>
+
+<path class="edge" d="M265 270V320"/>
+<path class="edge" d="M775 320V270"/>
+<path class="edge" d="M265 390V440"/>
+<path class="edge" d="M775 440V390"/>
+<path class="edge" d="M265 510V560"/>
+<path class="edge" d="M775 560V510"/>
+<path class="edge" d="M265 630V680"/>
+<path class="edge" d="M775 680V630"/>
+<path class="edge" d="M465 715H575"/>
+<rect x="65" y="200" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="65" y="200" width="400" height="70" rx="7" fill="#083344" fill-opacity="0.5" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="265" y="227" class="name" text-anchor="middle">Editor → InteractiveMode.run()</text>
+<text x="265" y="249" class="sub" text-anchor="middle">onSubmit → getUserInput → session.prompt</text>
+<rect x="65" y="320" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="65" y="320" width="400" height="70" rx="7" fill="#083344" fill-opacity="0.5" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="265" y="347" class="name" text-anchor="middle">AgentSession.prompt()</text>
+<text x="265" y="369" class="sub" text-anchor="middle">input → expand → before_agent_start</text>
+<rect x="65" y="440" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="65" y="440" width="400" height="70" rx="7" fill="#083344" fill-opacity="0.5" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="265" y="467" class="name" text-anchor="middle">Agent → runAgentLoop()</text>
+<text x="265" y="489" class="sub" text-anchor="middle">lifecycle, context conversion, tool turns</text>
+<rect x="65" y="560" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="65" y="560" width="400" height="70" rx="7" fill="#083344" fill-opacity="0.5" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="265" y="587" class="name" text-anchor="middle">ModelRuntime → provider</text>
+<text x="265" y="609" class="sub" text-anchor="middle">auth, headers, API routing, lazy setup</text>
+<rect x="65" y="680" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="65" y="680" width="400" height="70" rx="7" fill="#083344" fill-opacity="0.5" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="265" y="707" class="name" text-anchor="middle">API implementation</text>
+<text x="265" y="729" class="sub" text-anchor="middle">request payload → response chunks</text>
+<rect x="575" y="200" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="575" y="200" width="400" height="70" rx="7" fill="#064e3b" fill-opacity="0.5" stroke="#34d399" stroke-width="1.5"/>
+<text x="775" y="227" class="name" text-anchor="middle">Components → terminal</text>
+<text x="775" y="249" class="sub" text-anchor="middle">updateContent → requestRender → doRender</text>
+<rect x="575" y="320" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="575" y="320" width="400" height="70" rx="7" fill="#064e3b" fill-opacity="0.5" stroke="#34d399" stroke-width="1.5"/>
+<text x="775" y="347" class="name" text-anchor="middle">InteractiveMode.handleEvent()</text>
+<text x="775" y="369" class="sub" text-anchor="middle">assistant text, thinking, tool cards, status</text>
+<rect x="575" y="440" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="575" y="440" width="400" height="70" rx="7" fill="#064e3b" fill-opacity="0.5" stroke="#34d399" stroke-width="1.5"/>
+<text x="775" y="467" class="name" text-anchor="middle">AgentSession._handleAgentEvent()</text>
+<text x="775" y="489" class="sub" text-anchor="middle">extensions → notify UI → persist message_end</text>
+<rect x="575" y="560" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="575" y="560" width="400" height="70" rx="7" fill="#064e3b" fill-opacity="0.5" stroke="#34d399" stroke-width="1.5"/>
+<text x="775" y="587" class="name" text-anchor="middle">Agent.processEvents()</text>
+<text x="775" y="609" class="sub" text-anchor="middle">update agent state → await subscribers</text>
+<rect x="575" y="680" width="400" height="70" rx="7" fill="#0f172a"/>
+<rect x="575" y="680" width="400" height="70" rx="7" fill="#064e3b" fill-opacity="0.5" stroke="#34d399" stroke-width="1.5"/>
+<text x="775" y="707" class="name" text-anchor="middle">Stream → agent loop translation</text>
+<text x="775" y="729" class="sub" text-anchor="middle">AssistantMessageEvent → AgentEvent</text>
+<text x="265" y="179" class="sub" text-anchor="middle">REQUEST / CONTROL: TOP TO BOTTOM</text>
+<text x="775" y="179" class="sub" text-anchor="middle">EVENT / DISPLAY: BOTTOM TO TOP</text>
+<text x="520" y="833" class="sub" text-anchor="middle">AgentSessionRuntime owns and replaces the session; it is not a per-event forwarding layer.</text>
+<text x="520" y="858" class="sub" text-anchor="middle">Agent listeners are awaited. Session UI listeners and scheduled terminal frames are not.</text>
+<text x="520" y="883" class="sub" text-anchor="middle">agent_end finishes one run; agent_settled follows session retry / compaction / continuation checks.</text>
+<text x="30" y="37" class="name" text-anchor="start">Pi: from a user prompt to terminal output</text>
+<text x="30" y="66" class="sub" text-anchor="start">Construction: main → runtime factory → services → SDK → new Agent → new AgentSession</text>
+<text x="30" y="88" class="sub" text-anchor="start">Factory returns → new AgentSessionRuntime → new InteractiveMode → prompt starts the loop</text>
+<text x="30" y="117" class="note" text-anchor="start">Provider forwarding wrappers are collapsed here. See event-flow.md for the exact boundaries.</text>
+</svg>
