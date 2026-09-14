@@ -10,7 +10,7 @@ Last verified against `main2` at `d6ad4b88` on 2026-06-24.
 - [Session Lifecycle](./session-lifecycle.md): session creation, persistence, resume, tree navigation, fork, export, and migration.
 - [Runtime Modes](./runtime-modes.md): interactive, print, JSON, and RPC mode selection and responsibilities.
 - [Agent Loop Queues and Hooks](./agent-loop-hooks.md): low-level turn order, steering and follow-up queues, tool hooks, provider hooks, and next-turn hooks.
-- [Harness Workflow](./harness-workflow.md): current CLI flow to `AgentSession`/`Agent`/`runAgentLoop()`, and the separate direct `AgentHarness` path.
+- [AgentHarness and AgentSession](./harness-workflow.md): CLI versus durable execution, resume/recovery comparison, named lanes, event/result routing, and a complete fix/review/revise host example. Harness analysis updated against `317284159` on 2026-09-10; this does not re-verify the other documents.
 - [Communication and Transports](./communication-transports.md): in-process package boundaries and external transport boundaries.
 - [Functions Reference](./functions-reference.md): central public APIs and important orchestration functions.
 - [Debugging Workspace Packages](./debugging-workspace-packages.md): npm workspace links, package exports, `dist`, and source map behavior.
