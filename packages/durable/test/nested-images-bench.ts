@@ -2,7 +2,7 @@
  * Nested image storage benchmark. One model-issued `script` call, as a code mode call would, loops `count` times: a
  * nested `read_image` call returns a unique base64 image of `bytes` characters, then a nested `classify` call reads it.
  * The `inline` variant passes the image data in `classify`'s arguments; the `reference` variant passes the `taskId` of
- * the `read_image` result, whose value is the image, and `classify` resolves it from its caller's `NestedResultDoc`.
+ * the `read_image` result, whose value is the image, and `classify` resolves it from its caller's `NestedCallDoc`.
  * Reports commits, wall time, logical bytes written (JSON of the storage writes) by write type, the stored size before
  * `script` returns, after the run settles, after close, and after reopening, the heap (peak during the run, sampled
  * every 5 ms and at each commit; after a GC once the run settles, after `waitForIdle()`, and after reopening; all over
@@ -10,6 +10,7 @@
  *
  *   node --conditions=source --experimental-strip-types --expose-gc test/nested-images-bench.ts [count]
  */
+
 import { randomBytes } from "node:crypto";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -18,16 +19,17 @@ import { BACKGROUND_CONTEXT as context } from "@earendil-works/chord/context";
 import type { ImageContent } from "@earendil-works/pi-ai";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import { Type } from "typebox";
+import { arr, lit, num, obj, opt, str } from "@earendil-works/pi-schema";
 import {
 	createRegistry,
 	defineExtension,
 	defineTool,
 	Harness,
 	type JsonObject,
-	NestedResultDoc,
+	NestedCallDoc,
 	type Storage,
 	type StorageWrite,
+	type TaskId,
 	ToolResultEntry,
 	type ToolTaskInput,
 } from "../src/index.ts";
@@ -94,11 +96,11 @@ function noWrites(): Written {
 	};
 }
 
-const ImageArgument = Type.Object({
-	type: Type.Literal("image"),
-	mimeType: Type.String(),
-	data: Type.Optional(Type.String()),
-	source: Type.Optional(Type.Object({ taskId: Type.Number() })),
+const ImageArgument = obj({
+	type: lit("image"),
+	mimeType: str(),
+	data: opt(str()),
+	source: opt(obj({ taskId: num() })),
 });
 
 function registryFor(scenario: Scenario, probe: Probe) {
@@ -106,7 +108,7 @@ function registryFor(scenario: Scenario, probe: Probe) {
 	const readImage = defineTool({
 		name: "read_image",
 		description: "Read an image",
-		parameters: Type.Object({ n: Type.Number() }),
+		parameters: obj({ n: num() }),
 		// One image, so programs get it as an `ImageContent`. Unique per call: base64 of random bytes.
 		execute: async () => ({
 			output: [
@@ -117,21 +119,19 @@ function registryFor(scenario: Scenario, probe: Probe) {
 	const classify = defineTool({
 		name: "classify",
 		description: "Classify images",
-		parameters: Type.Object({ images: Type.Array(ImageArgument) }),
+		parameters: obj({ images: arr(ImageArgument) }),
 		execute: async (args, api, callContext) => {
 			for (const image of args.images) {
 				let data = image.data;
 				if (image.source !== undefined) {
-					// The caller is the nested call's `parent`; its `NestedResultDoc` holds the referenced result.
+					// The caller is the nested call's `parent`; its `NestedCallDoc` holds the referenced result.
 					const input = (await api.getTask(api.taskId, callContext))?.input as ToolTaskInput | undefined;
 					if (input?.kind !== "nested") throw new Error("classify resolves references only as a nested call");
-					const stored = await api.snapshot(
-						NestedResultDoc,
-						input.parent,
-						String(image.source.taskId),
-						callContext,
-					);
-					const block = stored?.result.structuredOutput as ImageContent | undefined;
+					// Results are keyed by call key, which the referenced call's input carries.
+					const source = (await api.getTask(image.source.taskId as TaskId, callContext))?.input as ToolTaskInput;
+					if (source.kind !== "nested") throw new Error("A reference names a nested call");
+					const stored = await api.snapshot(NestedCallDoc, input.parent, source.key, callContext);
+					const block = stored?.result?.structuredOutput as ImageContent | undefined;
 					data = block?.type === "image" ? block.data : undefined;
 				}
 				if (data?.length !== scenario.bytes) throw new Error(`Image has ${data?.length} characters`);
@@ -142,7 +142,7 @@ function registryFor(scenario: Scenario, probe: Probe) {
 	const script = defineTool({
 		name: "script",
 		description: "Read and classify images",
-		parameters: Type.Object({ count: Type.Number() }),
+		parameters: obj({ count: num() }),
 		callers: ["model"],
 		execute: async (args, api, callContext) => {
 			for (let n = 0; n < args.count; n++) {
@@ -190,12 +190,12 @@ async function runScenario(scenario: Scenario): Promise<Result> {
 		let commits = 0;
 		const written = noWrites();
 		const commit = storage.commit.bind(storage);
-		storage.commit = (writes, commitContext) => {
-			commits++;
+		storage.commit = (batches, receive, commitContext) => {
+			commits += batches.length;
 			// SQLite commits synchronously, which can starve the timer; sample here too.
 			sample();
-			for (const write of writes) written[write.type] += JSON.stringify(write).length;
-			return commit(writes, commitContext);
+			for (const write of batches.flat()) written[write.type] += JSON.stringify(write).length;
+			return commit(batches, receive, commitContext);
 		};
 		const harness = await Harness.open(storage, { models, registry }, context);
 		const root = await harness.root(context, { agent: { model: { provider: "faux", modelId: "faux-1" } } });

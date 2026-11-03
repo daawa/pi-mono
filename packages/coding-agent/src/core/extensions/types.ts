@@ -49,9 +49,11 @@ import type {
 	Component,
 	EditorComponent,
 	EditorTheme,
+	Keybinding,
 	KeyId,
 	OverlayHandle,
 	OverlayOptions,
+	ProgramStatus,
 	TUI,
 } from "@earendil-works/pi-tui";
 import type { Static, TSchema } from "typebox";
@@ -143,6 +145,19 @@ export type AutocompleteProviderFactory = (current: AutocompleteProvider) => Aut
 export type EditorFactory = (tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) => EditorComponent;
 
 /**
+ * Formats the host's configured keybindings for display.
+ * Extensions should use these instead of importing `keyText`/`keyHint`: an import may resolve to another copy of
+ * pi-coding-agent, which does not see the host's keybindings.
+ */
+export interface KeybindingHints {
+	/** Configured keys for a keybinding id, for example `"ctrl+o"`. Empty when the id has no keys. */
+	keyText(keybinding: Keybinding): string;
+
+	/** Configured keys followed by a description, styled as a hint, for example `"ctrl+o to expand"`. */
+	keyHint(keybinding: Keybinding, description: string): string;
+}
+
+/**
  * UI context for extensions to request interactive UI.
  * Each mode (interactive, RPC, print) provides its own implementation.
  */
@@ -224,6 +239,11 @@ export interface ExtensionUIContext {
 			overlayOptions?: OverlayOptions | (() => OverlayOptions);
 			/** Called with the overlay handle after the overlay is shown. Use to control visibility. */
 			onHandle?: (handle: OverlayHandle) => void;
+			/**
+			 * Report pi as blocked on user input (OSC 7501 program status) while this component is visible.
+			 * Only applies to inline components, not overlays.
+			 */
+			blocked?: { kind: NonNullable<ProgramStatus["kind"]>; message: string };
 		},
 	): Promise<T>;
 
@@ -464,7 +484,7 @@ export interface ToolRenderResultOptions {
 }
 
 /** Context passed to tool renderers. */
-export interface ToolRenderContext<TState = any, TArgs = any> {
+export interface ToolRenderContext<TState = any, TArgs = any> extends KeybindingHints {
 	/** Current tool call arguments. Shared across call/result renders for the same tool call. */
 	args: TArgs;
 	/** Unique id for this tool execution. Stable across call/result renders for the same tool call. */
@@ -534,6 +554,11 @@ export interface ToolAnnotations {
 export interface ToolNamespace {
 	/** For example `mcp__docs`. */
 	name: string;
+	/**
+	 * Other names that refer to the namespace where tools look it up by name (codemode's
+	 * `describeNamespace()` and the `namespace` option of `searchTools()`), for example `docs`.
+	 */
+	aliases?: readonly string[];
 	/** Short summary shown once with the group in model-facing tool listings. */
 	description?: string;
 	/**
@@ -605,6 +630,15 @@ export interface ToolDefinition<TParams extends TSchema = TSchema, TDetails = un
 
 	/** Group the tool belongs to, for example its MCP server. */
 	namespace?: ToolNamespace;
+
+	/**
+	 * For tools that reach other tools (such as `codemode`, which calls them, and `tool_search`, which
+	 * loads them): which tools a call with `input` may reach. `"all"`, or the words of the input that
+	 * may name them, where a word refers to a tool or namespace whose name it contains, so words may
+	 * over-match. Extensions that register tools late, such as MCP servers that are still connecting,
+	 * use it from their `tool_call` handler to finish registering those tools before the call runs.
+	 */
+	reachesTools?: (input: Record<string, unknown>) => "all" | readonly string[];
 
 	/** Hints about what the tool does, for example from an MCP server. */
 	annotations?: ToolAnnotations;
@@ -915,18 +949,32 @@ export interface ProviderStreamEvent {
 	data: unknown;
 }
 
-/** Fired after user submits prompt but before agent loop. */
-export interface BeforeAgentStartEvent {
+interface BeforeAgentStartEventBase {
 	type: "before_agent_start";
-	/** The raw user prompt text (after expansion). */
-	prompt: string;
-	/** Images attached to the user prompt, if any. */
-	images?: ImageContent[];
 	/** The current system prompt, rendered from systemPromptOptions and earlier handler changes. */
 	readonly systemPrompt: string;
 	/** Mutable prompt sections. Later handlers observe mutations made by earlier handlers. */
 	systemPromptOptions: NormalizedBuildSystemPromptOptions;
 }
+
+/** A run started by a submitted prompt, RPC prompt, or `pi.sendUserMessage()`. */
+export interface BeforeAgentStartUserEvent extends BeforeAgentStartEventBase {
+	messageType: "user";
+	/** The raw user prompt text (after expansion). */
+	prompt: string;
+	/** Images attached to the user prompt, if any. */
+	images?: ImageContent[];
+}
+
+/** A run started by `pi.sendMessage(..., { triggerTurn: true })` while idle. */
+export interface BeforeAgentStartCustomEvent extends BeforeAgentStartEventBase {
+	messageType: "custom";
+	/** The custom message that starts the run. */
+	message: CustomMessage;
+}
+
+/** Fired before a run starts from a user message or an idle custom message with `triggerTurn`. */
+export type BeforeAgentStartEvent = BeforeAgentStartUserEvent | BeforeAgentStartCustomEvent;
 
 /** Fired when an agent loop starts */
 export interface AgentStartEvent {
@@ -1504,7 +1552,7 @@ export interface SessionBeforeTreeResult {
 // Message and Entry Rendering
 // ============================================================================
 
-export interface MessageRenderOptions {
+export interface MessageRenderOptions extends KeybindingHints {
 	expanded: boolean;
 	/** Horizontal padding configured by the outputPad setting. */
 	outputPad: number;
@@ -1514,11 +1562,15 @@ export interface MarkdownTransformContext {
 	messageType: "user" | "assistant" | "assistant-thinking";
 	isStreaming: boolean;
 	availableWidth: number;
+	/** Persisted session-entry id. Undefined for live messages or live rendering; available when rendering from persisted session entries. */
+	messageId?: string;
+	/** Persisted session-entry ISO timestamp. Undefined for live messages or live rendering; available when rendering from persisted session entries. */
+	timestamp?: string;
 }
 
 export type MarkdownTransformer = (markdown: string, context: MarkdownTransformContext) => string;
 
-export interface EntryRenderOptions {
+export interface EntryRenderOptions extends KeybindingHints {
 	expanded: boolean;
 }
 
@@ -2091,7 +2143,10 @@ export type GetSessionNameHandler = () => string | undefined;
 export type GetActiveToolsHandler = () => string[];
 
 /** Tool info with name, description, parameter schema, prompt guidelines, and source metadata. */
-export type ToolInfo = Pick<ToolDefinition, "name" | "description" | "parameters" | "promptGuidelines"> & {
+export type ToolInfo = Pick<
+	ToolDefinition,
+	"name" | "description" | "parameters" | "promptGuidelines" | "reachesTools"
+> & {
 	exposure: ToolExposure;
 	namespace?: ToolNamespace;
 	annotations?: ToolAnnotations;

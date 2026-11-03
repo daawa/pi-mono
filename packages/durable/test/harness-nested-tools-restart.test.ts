@@ -1,17 +1,15 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Context } from "@earendil-works/chord";
+import type { Context } from "@earendil-works/chord/context";
 import {
 	type AssistantMessage,
 	fauxAssistantMessage,
 	fauxText,
 	fauxToolCall,
 	type ToolResultMessage,
-	Type,
 } from "@earendil-works/pi-ai";
 import {
-	type AgentEvent,
 	defineExtension,
 	defineTask,
 	defineTool,
@@ -23,16 +21,17 @@ import {
 	ToolResultEntry,
 	ToolTask,
 	type ToolTaskInput,
-	watchEvents,
 } from "@earendil-works/pi-durable";
+import { obj, opt, str } from "@earendil-works/pi-schema";
 import { afterEach, describe, expect, it } from "vitest";
 import { openNodeSqliteStorage } from "../src/storage/sqlite/node.ts";
 import { allEntries, type ChatSetup, chatSetup, openChat } from "./chat-support.ts";
 import { addHooks, addTool } from "./harness-support.ts";
+import { nestedResultOf, nestedResults, viewHistory } from "./live-support.ts";
 import { context } from "./session-support.ts";
 import { aborted, deferred, eventually } from "./task-support.ts";
 
-const Parameters = Type.Object({ text: Type.Optional(Type.String()) });
+const Parameters = obj({ text: opt(str()) });
 
 function tool(
 	name: string,
@@ -73,16 +72,6 @@ async function nestedTasks(harness: Harness) {
 
 function results(entries: Awaited<ReturnType<typeof allEntries>>): ToolResultMessage[] {
 	return entries.filter((entry) => ToolResultEntry.is(entry)).map((entry) => entry.model![0] as ToolResultMessage);
-}
-
-/** Collect tool end events from now on. */
-async function collectEnds(harness: Harness, conversationId: Parameters<Harness["conversation"]>[0]) {
-	const ends: Extract<AgentEvent, { type: "tool_execution_end" }>[] = [];
-	const stream = await watchEvents(harness, conversationId, context);
-	stream.start(async (batch) => {
-		for (const event of batch) if (event.type === "tool_execution_end") ends.push(event);
-	});
-	return { ends, stop: () => stream.stop() };
 }
 
 function codes(result: NestedToolExecutionResult | undefined): string[] {
@@ -142,18 +131,19 @@ describe("nested tool calls across a restart", () => {
 		await opened.harness.close(context);
 
 		opened = await open(path, setup);
-		const { ends, stop } = await collectEnds(opened.harness, opened.root.id);
+		const history = await viewHistory(opened.harness, opened.root.id);
+		const nested = nestedResults(opened.harness);
 		opened.harness.resume();
 		expect((await (await opened.harness.submission(id, context))!.wait(context)).status).toBe("done");
 		await opened.harness.waitForIdle(context);
-		await stop();
+		history.detach();
 		expect(runs).toEqual({ started: 1, gated: 0 });
 		const [started, gate] = await nestedTasks(opened.harness);
 		for (const task of [started, gate]) {
 			expect(task).toMatchObject({ abandonOnRestart: true, abortRequested: true, abortReason: "restart" });
 			expect(task!.state).toMatchObject({ status: "terminal", outcome: { status: "aborted" } });
 		}
-		const end = (callId: string) => ends.find((event) => event.toolCallId === callId)?.result;
+		const end = (callId: string) => nestedResultOf(history.live(), nested, callId);
 		expect(codes(end("c1/1"))).toEqual(["interrupted"]);
 		expect(end("c1/1")).toMatchObject({ isError: true, details: { step: 1 } });
 		expect(end("c1/1")).not.toHaveProperty("structuredOutput");
@@ -459,6 +449,112 @@ describe("nested tool calls across a restart", () => {
 		}
 		expect(results_[0]?.structuredOutput).toBe("safe run 2");
 		expect(codes(results_[1])).toEqual(["interrupted"]);
+		await opened.harness.close(context);
+	});
+
+	it("clears the slots of nested calls an earlier attempt finished when the rerun makes none", async () => {
+		const path = await sqlitePath();
+		const setup = chatSetup();
+		const finished = deferred();
+		let attempts = 0;
+		addTool(
+			setup.registry,
+			tool("quick", async () => ({ output: [{ type: "text", text: "ok" }] })),
+		);
+		addTool(
+			setup.registry,
+			tool(
+				"caller",
+				async (_args, api, callContext) => {
+					attempts++;
+					if (attempts === 1) {
+						await api.executeTool("quick", {}, callContext);
+						finished.resolve();
+						return aborted(callContext.abortSignal!);
+					}
+					return { output: [{ type: "text", text: "done" }] };
+				},
+				{ replay: "safe" },
+			),
+		);
+		setup.faux.setResponses([call("caller"), DONE]);
+		let opened = await open(path, setup);
+		const id = (await opened.root.submit({ type: "input", content: "go" }, context)).id;
+		await finished.promise;
+		// The finished nested call's slot is still listed, below its running caller.
+		expect((await opened.harness.snapshot(LiveDoc, opened.root.id, context))?.nestedTools).toHaveLength(1);
+		await opened.harness.close(context);
+
+		opened = await open(path, setup);
+		let slotsAfterCaller: number | undefined;
+		opened.harness.observeCommits({
+			advance: (publication) => {
+				for (const change of publication.changes) {
+					if (change.type !== "task" || change.value.kind !== ToolTask.definition.name) continue;
+					if ((change.value.input as ToolTaskInput).kind !== "model" || change.value.state.status !== "terminal")
+						continue;
+					const live = publication.changes.find(
+						(each) => each.type === "document" && each.record.kind === "pi.live",
+					);
+					const value =
+						live?.type === "document" && live.kind === "change"
+							? (live.value as { nestedTools?: unknown[] })
+							: undefined;
+					slotsAfterCaller = value?.nestedTools?.length ?? 0;
+				}
+			},
+			end: () => {},
+		});
+		opened.harness.resume();
+		expect((await (await opened.harness.submission(id, context))!.wait(context)).status).toBe("done");
+		expect(attempts).toBe(2);
+		// The caller's terminal commit removed the slot, though the rerun made no nested call.
+		expect(slotsAfterCaller).toBe(0);
+		await opened.harness.close(context);
+	});
+
+	it("aborts a nested call an earlier attempt of a replay-safe caller left running and the rerun never made again", async () => {
+		const path = await sqlitePath();
+		const setup = chatSetup();
+		const running = deferred();
+		let attempts = 0;
+		addTool(
+			setup.registry,
+			tool(
+				"slow",
+				async (_args, _api, callContext) => {
+					running.resolve();
+					return aborted(callContext.abortSignal!);
+				},
+				{ replay: "safe" },
+			),
+		);
+		addTool(
+			setup.registry,
+			tool(
+				"caller",
+				async (_args, api, callContext) => {
+					attempts++;
+					// Only the first attempt calls `slow`; the rerun after the restart returns at once.
+					if (attempts === 1) await api.executeTool("slow", {}, callContext, { key: "slow" });
+					return { output: [{ type: "text", text: "done" }] };
+				},
+				{ replay: "safe" },
+			),
+		);
+		setup.faux.setResponses([call("caller"), DONE]);
+		let opened = await open(path, setup);
+		const id = (await opened.root.submit({ type: "input", content: "go" }, context)).id;
+		await running.promise;
+		await opened.harness.close(context);
+
+		opened = await open(path, setup);
+		opened.harness.resume();
+		expect((await (await opened.harness.submission(id, context))!.wait(context)).status).toBe("done");
+		expect(attempts).toBe(2);
+		// The rerun's settlement found the leftover call among the tasks it owns and aborted it.
+		const [leftover] = await nestedTasks(opened.harness);
+		expect(leftover?.state).toMatchObject({ status: "terminal", outcome: { status: "aborted" } });
 		await opened.harness.close(context);
 	});
 
